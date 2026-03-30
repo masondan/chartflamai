@@ -73,12 +73,16 @@
       chart.destroy();
     }
 
+    // Deep-clone data to strip Svelte 5 $state proxies — Chart.js uses
+    // Object.defineProperty internally which conflicts with reactive proxies.
+    const plainData = JSON.parse(JSON.stringify({
+      labels: angle.data.labels,
+      datasets: applyColors(angle.data.datasets)
+    }));
+
     chart = new Chart(canvas, {
       type: getChartJsType(chartType) as any,
-      data: {
-        labels: angle.data.labels,
-        datasets: applyColors(angle.data.datasets) as any
-      },
+      data: plainData,
       options: getChartJsOptions(chartType) as any
     });
   }
