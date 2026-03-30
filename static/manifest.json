@@ -1,0 +1,32 @@
+{
+  "name": "ChartFlamAI",
+  "short_name": "ChartFlamAI",
+  "description": "AI-powered data discovery and chart generation for journalists",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#5422b0",
+  "icons": [
+    {
+      "src": "/logos/logo-chartflam-ai-touch.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logos/logo-chartflam-ai-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logos/logo-chartflam-ai-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["productivity", "news"]
+}

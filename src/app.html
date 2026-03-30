@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="theme-color" content="#5422b0" />
+		<meta name="description" content="AI-powered data discovery and chart generation for journalists" />
+
+		<!-- Open Graph -->
+		<meta property="og:title" content="ChartFlamAI" />
+		<meta property="og:description" content="Discover stories in data. Create charts in seconds." />
+		<meta property="og:image" content="https://chartflamai.pages.dev/logos/logo-chartflam-ai-og.png" />
+		<meta property="og:type" content="website" />
+
+		<!-- Twitter Card -->
+		<meta name="twitter:card" content="summary_large_image" />
+		<meta name="twitter:title" content="ChartFlamAI" />
+		<meta name="twitter:description" content="AI-powered data discovery for journalists" />
+		<meta name="twitter:image" content="https://chartflamai.pages.dev/logos/logo-chartflam-ai-og.png" />
+
+		<!-- Robots: strict noindex/nofollow during development -->
+		<meta name="robots" content="noindex, nofollow" />
+
+		<!-- PWA -->
+		<link rel="manifest" href="/manifest.json" />
+		<link rel="icon" href="/logos/logo-chartflam-ai-favicon.svg" type="image/svg+xml" />
+		<link rel="icon" href="/logos/logo-chartflam-ai-favicon.ico" sizes="32x32" />
+		<link rel="apple-touch-icon" href="/logos/logo-chartflam-ai-touch.png" />
+
+		%sveltekit.head%
+	</head>
+	<body data-sveltekit-preload-data="hover">
+		<div style="display: contents">%sveltekit.body%</div>
+	</body>
+</html>
