@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import { browser } from '$app/environment';
   import type { ChartType } from '$lib/config/design';
   import type { AngleData } from '$lib/stores/aiState.svelte';
@@ -14,89 +14,159 @@
   let { angle, chartType, height = 200 }: Props = $props();
 
   let canvas = $state<HTMLCanvasElement>();
-  let chart: any;
+  let chartInstance: any = null;
+  let ChartJs: any = null;
 
   function getChartJsType(type: ChartType): string {
     switch (type) {
-      case 'horizontalBar': return 'bar';
       case 'stackedBar': return 'bar';
-      case 'doughnut': return 'doughnut';
+      case 'groupedBar': return 'bar';
       default: return type;
     }
   }
 
-  function getChartJsOptions(type: ChartType): Record<string, unknown> {
-    const base: Record<string, unknown> = {
+  const isPieType = (type: ChartType) => type === 'pie';
+
+  function getChartJsOptions(type: ChartType): Record<string, any> {
+    const base: Record<string, any> = {
       responsive: true,
       maintainAspectRatio: false,
+      animation: { duration: 400 },
+      layout: { padding: { top: 8, bottom: 4, left: 4, right: 4 } },
       plugins: {
         legend: {
           display: true,
-          position: 'bottom' as const,
+          position: 'bottom',
           labels: {
-            font: { family: "'Inter', sans-serif", size: 11 },
-            padding: 12
+            font: { family: "'Inter', sans-serif", size: 11, weight: '500' },
+            padding: 10,
+            usePointStyle: true,
+            pointStyleWidth: 8,
+            boxWidth: 8,
+            color: '#555'
           }
+        },
+        tooltip: {
+          backgroundColor: '#1f1f1f',
+          titleFont: { family: "'Inter', sans-serif", size: 12, weight: '600' },
+          bodyFont: { family: "'Inter', sans-serif", size: 11 },
+          padding: 10,
+          cornerRadius: 8,
+          displayColors: true,
+          boxPadding: 4
         }
       }
     };
 
-    if (type === 'horizontalBar') {
-      (base as any).indexAxis = 'y';
+    if (!isPieType(type)) {
+      base.scales = {
+        x: {
+          grid: { display: false },
+          ticks: {
+            font: { family: "'Inter', sans-serif", size: 10 },
+            color: '#888',
+            maxRotation: 45
+          },
+          border: { display: false }
+        },
+        y: {
+          grid: { color: 'rgba(0,0,0,0.05)', drawBorder: false },
+          ticks: {
+            font: { family: "'Inter', sans-serif", size: 10 },
+            color: '#888'
+          },
+          border: { display: false }
+        }
+      };
     }
 
     if (type === 'stackedBar') {
-      (base as any).scales = {
-        x: { stacked: true },
-        y: { stacked: true }
+      base.scales.x.stacked = true;
+      base.scales.y.stacked = true;
+    }
+
+    if (type === 'line') {
+      base.elements = {
+        line: { tension: 0.3, borderWidth: 2.5 },
+        point: { radius: 3, hoverRadius: 5, borderWidth: 2, backgroundColor: '#fff' }
+      };
+    }
+
+    if (type === 'bar' || type === 'groupedBar' || type === 'stackedBar') {
+      base.elements = {
+        bar: { borderRadius: 4, borderSkipped: false }
       };
     }
 
     return base;
   }
 
-  function applyColors(datasets: AngleData['data']['datasets']): AngleData['data']['datasets'] {
-    return datasets.map((ds, i) => ({
-      ...ds,
-      borderColor: ds.borderColor || DESIGN_TOKENS.chartColors[i % DESIGN_TOKENS.chartColors.length],
-      backgroundColor: ds.backgroundColor || DESIGN_TOKENS.chartColors[i % DESIGN_TOKENS.chartColors.length]
-    }));
+  function applyColors(datasets: AngleData['data']['datasets'], type: ChartType) {
+    const colors = DESIGN_TOKENS.chartColors;
+    return datasets.map((ds, i) => {
+      const color = colors[i % colors.length];
+      const result: Record<string, any> = { ...ds };
+
+      if (isPieType(type)) {
+        // Pie/donut: each slice gets a different colour
+        result.backgroundColor = ds.data.map((_: number, j: number) => colors[j % colors.length]);
+        result.borderColor = '#fff';
+        result.borderWidth = 2;
+      } else if (type === 'line') {
+        result.borderColor = color;
+        result.backgroundColor = color + '18';
+        result.fill = true;
+        result.pointBackgroundColor = '#fff';
+        result.pointBorderColor = color;
+      } else {
+        // Bar types
+        result.backgroundColor = color + 'CC';
+        result.borderColor = color;
+        result.borderWidth = 0;
+      }
+      return result;
+    });
   }
 
   async function renderChart() {
     if (!browser || !canvas) return;
 
-    const { Chart, registerables } = await import('chart.js');
-    Chart.register(...registerables);
-
-    if (chart) {
-      chart.destroy();
+    if (!ChartJs) {
+      const mod = await import('chart.js');
+      ChartJs = mod.Chart;
+      ChartJs.register(...mod.registerables);
     }
 
-    // Deep-clone data to strip Svelte 5 $state proxies — Chart.js uses
-    // Object.defineProperty internally which conflicts with reactive proxies.
+    if (chartInstance) {
+      chartInstance.destroy();
+      chartInstance = null;
+    }
+
+    // Deep-clone to strip Svelte 5 $state proxies
     const plainData = JSON.parse(JSON.stringify({
       labels: angle.data.labels,
-      datasets: applyColors(angle.data.datasets)
+      datasets: applyColors(angle.data.datasets, chartType)
     }));
 
-    chart = new Chart(canvas, {
-      type: getChartJsType(chartType) as any,
+    chartInstance = new ChartJs(canvas, {
+      type: getChartJsType(chartType),
       data: plainData,
-      options: getChartJsOptions(chartType) as any
+      options: getChartJsOptions(chartType)
     });
   }
 
   onMount(() => {
     renderChart();
-    return () => { if (chart) chart.destroy(); };
+    return () => { if (chartInstance) chartInstance.destroy(); };
   });
 
+  let prevType = '';
   $effect(() => {
-    // Re-render when chartType or angle changes
-    const _type = chartType;
-    const _data = angle.data;
-    if (chart) renderChart();
+    const currentType = chartType;
+    if (prevType && currentType !== prevType) {
+      tick().then(() => renderChart());
+    }
+    prevType = currentType;
   });
 </script>
 
@@ -114,10 +184,11 @@
   .chart-container {
     position: relative;
     width: 100%;
-    background: var(--bg-surface);
+    background: var(--white);
     border-radius: var(--radius-md);
     border: 1px solid var(--color-border);
     overflow: hidden;
+    padding: 0.5rem;
   }
 
   canvas {

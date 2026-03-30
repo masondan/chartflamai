@@ -1,12 +1,45 @@
 <script lang="ts">
   import { uiState } from '$lib/stores/uiState.svelte';
+  import { aiState } from '$lib/stores/aiState.svelte';
   import SearchTab from '$lib/components/SearchTab.svelte';
+  import SourceTab from '$lib/components/SourceTab.svelte';
+  import ClassicTab from '$lib/components/ClassicTab.svelte';
 
   const tabs = [
-    { id: 'search' as const, label: 'Search' },
-    { id: 'source' as const, label: 'Source' },
-    { id: 'paste' as const, label: 'Paste' }
+    { id: 'search' as const, label: 'Search', ai: true },
+    { id: 'source' as const, label: 'Source', ai: true },
+    { id: 'classic' as const, label: 'Classic', ai: false }
   ];
+
+  // Per-tab results cache so switching tabs doesn't lose work
+  let tabCache: Record<string, { response: any; step: string }> = {};
+
+  function switchTab(tab: typeof tabs[number]['id']) {
+    if (uiState.value.activeTab === tab) return;
+
+    // Save current tab's state
+    const current = uiState.value.activeTab;
+    if (aiState.value.apiResponse || aiState.value.step !== 'input') {
+      tabCache[current] = {
+        response: aiState.value.apiResponse,
+        step: aiState.value.step
+      };
+    }
+
+    // Restore target tab's state (or reset to input)
+    const cached = tabCache[tab];
+    if (cached?.response) {
+      aiState.setResponse(cached.response);
+    } else {
+      aiState.setStep('input');
+      aiState.value.apiResponse = null;
+      aiState.value.error = null;
+    }
+
+    uiState.value.expandedAngleId = null;
+    uiState.closeDrawer();
+    uiState.setTab(tab);
+  }
 </script>
 
 <div class="tabs">
@@ -14,8 +47,11 @@
     <button
       class="tab-btn"
       class:active={uiState.value.activeTab === tab.id}
-      onclick={() => uiState.setTab(tab.id)}
+      onclick={() => switchTab(tab.id)}
     >
+      {#if tab.ai}
+        <img src="/icons/icon-ai-fill.svg" alt="" width="14" height="14" class="sparkle" />
+      {/if}
       {tab.label}
     </button>
   {/each}
@@ -25,15 +61,9 @@
   {#if uiState.value.activeTab === 'search'}
     <SearchTab />
   {:else if uiState.value.activeTab === 'source'}
-    <div class="coming-soon card">
-      <p>Source mode coming soon</p>
-      <p class="coming-soon-sub">Upload PDFs or enter URLs to discover data angles</p>
-    </div>
-  {:else if uiState.value.activeTab === 'paste'}
-    <div class="coming-soon card">
-      <p>Paste mode coming soon</p>
-      <p class="coming-soon-sub">Paste CSV data to discover visualization angles</p>
-    </div>
+    <SourceTab />
+  {:else if uiState.value.activeTab === 'classic'}
+    <ClassicTab />
   {/if}
 </div>
 
@@ -46,6 +76,10 @@
 
   .tab-btn {
     flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
     padding: 0.625rem 1rem;
     border-radius: var(--radius-md);
     font-weight: var(--font-weight-medium);
@@ -62,28 +96,11 @@
     border-color: var(--color-primary);
   }
 
+  .sparkle {
+    flex-shrink: 0;
+  }
+
   .tab-content {
     min-height: 300px;
-  }
-
-  .coming-soon {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 200px;
-    text-align: center;
-  }
-
-  .coming-soon p {
-    font-weight: var(--font-weight-semibold);
-    color: var(--text-dark);
-    margin-bottom: 0.5rem;
-  }
-
-  .coming-soon-sub {
-    font-weight: var(--font-weight-regular) !important;
-    color: var(--text-medium) !important;
-    font-size: var(--font-size-sm);
   }
 </style>

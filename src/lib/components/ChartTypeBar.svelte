@@ -11,10 +11,9 @@
 
   const allTypes: Array<{ id: ChartType; label: string; icon: string }> = [
     { id: 'pie', label: 'Pie', icon: '/icons/icon-pie-chart.svg' },
-    { id: 'doughnut', label: 'Donut', icon: '/icons/icon-donut-chart.svg' },
     { id: 'bar', label: 'Bar', icon: '/icons/icon-vertical-bars.svg' },
-    { id: 'horizontalBar', label: 'H-Bar', icon: '/icons/icon-horizontal-bars.svg' },
     { id: 'stackedBar', label: 'Stacked', icon: '/icons/icon-stacked-bars.svg' },
+    { id: 'groupedBar', label: 'Grouped', icon: '/icons/icon-grouped-bars.svg' },
     { id: 'line', label: 'Line', icon: '/icons/icon-line-chart.svg' }
   ];
 </script>

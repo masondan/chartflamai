@@ -6,12 +6,13 @@
   let query = $state('');
   let chartTypeHint = $state('any');
   let explorerOpen = $state(true);
+  let progressMessage = $state('');
 
   const chartTypeOptions = [
     { id: 'any', label: 'Any' },
+    { id: 'pie', label: 'Pie' },
     { id: 'bar', label: 'Bar' },
-    { id: 'line', label: 'Line' },
-    { id: 'picto', label: 'Picto' }
+    { id: 'line', label: 'Line' }
   ];
 
   async function handleSubmit() {
@@ -19,6 +20,7 @@
 
     uiState.setLoading(true);
     aiState.setStep('loading');
+    progressMessage = 'Connecting...';
 
     try {
       const res = await fetch('/api/search', {
@@ -36,15 +38,43 @@
         throw new Error(errData.error || `Search failed (${res.status})`);
       }
 
-      const data = await res.json();
-      aiState.setResponse(data);
+      // Read SSE stream
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
 
-      // Collapse the explorer when results arrive
-      explorerOpen = false;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          const match = line.match(/^data: (.+)$/);
+          if (!match) continue;
+
+          try {
+            const event = JSON.parse(match[1]);
+            if (event.type === 'progress') {
+              progressMessage = event.message;
+            } else if (event.type === 'result') {
+              aiState.setResponse(event.data);
+              explorerOpen = false;
+            } else if (event.type === 'error') {
+              throw new Error(event.message);
+            }
+          } catch (e) {
+            if (e instanceof Error && e.message !== match[1]) throw e;
+          }
+        }
+      }
     } catch (err) {
       aiState.setError(err instanceof Error ? err.message : 'An unexpected error occurred');
     } finally {
       uiState.setLoading(false);
+      progressMessage = '';
     }
   }
 </script>
@@ -127,13 +157,21 @@
   {/if}
 
   {#if aiState.value.step === 'loading'}
-    <div class="loading-cards">
-      {#each Array(3) as _, i}
-        <div class="skeleton-card card">
-          <div class="skeleton-line wide"></div>
-          <div class="skeleton-line narrow"></div>
+    <div class="loading-section">
+      {#if progressMessage}
+        <div class="progress-message">
+          <span class="spinner"></span>
+          <span>{progressMessage}</span>
         </div>
-      {/each}
+      {/if}
+      <div class="loading-cards">
+        {#each Array(3) as _, i}
+          <div class="skeleton-card card">
+            <div class="skeleton-line wide"></div>
+            <div class="skeleton-line narrow"></div>
+          </div>
+        {/each}
+      </div>
     </div>
   {/if}
 
@@ -255,6 +293,24 @@
     font-weight: var(--font-weight-medium);
   }
 
+  .loading-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .progress-message {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.625rem;
+    padding: 0.75rem;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-primary);
+    animation: fadeIn var(--duration-normal) ease;
+  }
+
   .loading-cards {
     display: flex;
     flex-direction: column;
@@ -284,6 +340,11 @@
   @keyframes pulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.4; }
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
   }
 
   @keyframes slideUp {

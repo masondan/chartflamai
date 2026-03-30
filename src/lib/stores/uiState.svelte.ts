@@ -1,5 +1,5 @@
 interface UiState {
-  activeTab: 'search' | 'source' | 'paste';
+  activeTab: 'search' | 'source' | 'classic';
   isLoading: boolean;
   showSourcePreview: boolean;
   previewText: string;

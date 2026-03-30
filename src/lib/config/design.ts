@@ -30,7 +30,7 @@ export const DESIGN_TOKENS = {
     '#C0C0C0'
   ],
 
-  chartTypes: ['pie', 'doughnut', 'line', 'bar', 'horizontalBar', 'stackedBar'] as const
+  chartTypes: ['pie', 'bar', 'stackedBar', 'groupedBar', 'line'] as const
 } as const;
 
 export type ChartType = (typeof DESIGN_TOKENS.chartTypes)[number];
