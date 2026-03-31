@@ -2,12 +2,14 @@
   import { onMount } from 'svelte';
   import { browser } from '$app/environment';
   import { PICTOGRAM_ICONS, type PictogramIcon } from '$lib/data/pictogram-icons';
+  import { chartArchive } from '$lib/stores/chartArchive.svelte';
 
   interface Props {
+    archiveId?: string;
     onclose: () => void;
   }
 
-  let { onclose }: Props = $props();
+  let { archiveId: initArchiveId, onclose }: Props = $props();
 
   // ─── Pictogram state ───
   let pictogramFilled = $state(6.7);
@@ -50,6 +52,8 @@
   // ─── Refs ───
   let canvasEl: HTMLCanvasElement;
   let drawerContentEl: HTMLDivElement;
+
+  let currentArchiveId = $state<string | undefined>(initArchiveId);
 
   const fontOptions = [
     { value: 'Inter', label: 'Inter (Default)' },
@@ -320,9 +324,61 @@
     }
   }
 
+  function captureThumb(): string {
+    if (!canvasEl) return '';
+    try {
+      const thumbCanvas = document.createElement('canvas');
+      thumbCanvas.width = 400;
+      thumbCanvas.height = 400;
+      const tCtx = thumbCanvas.getContext('2d')!;
+      tCtx.fillStyle = bgColor === 'transparent' ? '#FFFFFF' : (bgColor === 'white' ? '#FFFFFF' : bgColor);
+      tCtx.fillRect(0, 0, 400, 400);
+      const scale = Math.min(360 / canvasEl.width, 360 / canvasEl.height);
+      const w = canvasEl.width * scale;
+      const h = canvasEl.height * scale;
+      tCtx.drawImage(canvasEl, (400 - w) / 2, (400 - h) / 2, w, h);
+      return thumbCanvas.toDataURL('image/png', 0.7);
+    } catch { return ''; }
+  }
+
+  function restoreFromArchive() {
+    if (!initArchiveId) return;
+    const archived = chartArchive.getById(initArchiveId);
+    if (!archived) return;
+    const c = archived.config;
+    if (c.pictogramFilled !== undefined) pictogramFilled = c.pictogramFilled;
+    if (c.pictogramFilledColor) pictogramFilledColor = c.pictogramFilledColor;
+    if (c.pictogramUnfilledColor) pictogramUnfilledColor = c.pictogramUnfilledColor;
+    if (c.horizontalSpacing !== undefined) horizontalSpacing = c.horizontalSpacing;
+    if (c.verticalSpacing !== undefined) verticalSpacing = c.verticalSpacing;
+    if (c.currentIconName) {
+      currentIconName = c.currentIconName;
+      const icon = allIcons.find(i => i.name === c.currentIconName);
+      if (icon) currentIconSvg = sanitizeSvg(icon.svg);
+    }
+    if (c.bgColor !== undefined) bgColor = c.bgColor;
+    if (c.chartTitle !== undefined) chartTitle = c.chartTitle;
+    if (c.titleFont) titleFont = c.titleFont;
+    if (c.titleAlign) titleAlign = c.titleAlign;
+    if (c.titleBold !== undefined) titleBold = c.titleBold;
+    if (c.titleItalic !== undefined) titleItalic = c.titleItalic;
+    if (c.titleSize !== undefined) titleSize = c.titleSize;
+    if (c.titleLineHeight !== undefined) titleLineHeight = c.titleLineHeight;
+    if (c.titleColor) titleColor = c.titleColor;
+    if (c.chartCaption !== undefined) chartCaption = c.chartCaption;
+    if (c.captionFont) captionFont = c.captionFont;
+    if (c.captionAlign) captionAlign = c.captionAlign;
+    if (c.captionBold !== undefined) captionBold = c.captionBold;
+    if (c.captionItalic !== undefined) captionItalic = c.captionItalic;
+    if (c.captionSize !== undefined) captionSize = c.captionSize;
+    if (c.captionLineHeight !== undefined) captionLineHeight = c.captionLineHeight;
+    if (c.captionColor) captionColor = c.captionColor;
+  }
+
   // ─── Lifecycle ───
   onMount(() => {
     loadIcons();
+    restoreFromArchive();
   });
 
   $effect(() => {
@@ -335,6 +391,34 @@
     verticalSpacing;
     currentIconSvg;
     renderPictogram();
+  });
+
+  let saveTimer: ReturnType<typeof setTimeout>;
+  $effect(() => {
+    const _ = [
+      pictogramFilled, pictogramFilledColor, pictogramUnfilledColor,
+      horizontalSpacing, verticalSpacing, currentIconName,
+      bgColor,
+      chartTitle, titleFont, titleAlign, titleBold, titleItalic, titleSize, titleLineHeight, titleColor,
+      chartCaption, captionFont, captionAlign, captionBold, captionItalic, captionSize, captionLineHeight, captionColor
+    ];
+
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      if (!browser) return;
+      const thumb = captureThumb();
+      if (!thumb) return;
+      const config = {
+        pictogramFilled, pictogramFilledColor, pictogramUnfilledColor,
+        horizontalSpacing, verticalSpacing, currentIconName,
+        bgColor,
+        chartTitle, titleFont, titleAlign, titleBold, titleItalic, titleSize, titleLineHeight, titleColor,
+        chartCaption, captionFont, captionAlign, captionBold, captionItalic, captionSize, captionLineHeight, captionColor
+      };
+      currentArchiveId = chartArchive.save('pictogram', config, thumb, currentArchiveId);
+    }, 800);
+
+    return () => clearTimeout(saveTimer);
   });
 
   // Derived for spacing slider
@@ -820,7 +904,7 @@
   }
 
   .section-body {
-    padding: 0 1rem 1rem;
+    padding: 0.75rem 1rem 1rem;
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
@@ -851,6 +935,10 @@
   .style-slider {
     flex: 1;
     min-width: 0;
+    accent-color: var(--color-primary);
+    min-height: auto;
+    padding: 0;
+    border: none;
   }
 
   .pictogram-input-box {

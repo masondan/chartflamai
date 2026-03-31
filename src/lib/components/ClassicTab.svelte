@@ -3,6 +3,7 @@
   import ChartTypeBar from './ChartTypeBar.svelte';
   import ChartEditor from './ChartEditor.svelte';
   import PictogramEditor from './PictogramEditor.svelte';
+  import WaffleChartEditor from './WaffleChartEditor.svelte';
   import type { ChartType } from '$lib/config/design';
   import type { AngleData } from '$lib/stores/aiState.svelte';
   import { DESIGN_TOKENS } from '$lib/config/design';
@@ -21,11 +22,15 @@
   // Pictogram editor state
   let pictogramOpen = $state(false);
 
+  // Waffle chart editor state
+  let waffleOpen = $state(false);
+
   const chartStarters: Array<{ type: ChartType; label: string; icon: string }> = [
     { type: 'pie', label: 'Pie', icon: '/icons/icon-pie-chart.svg' },
     { type: 'bar', label: 'Bar', icon: '/icons/icon-vertical-bars.svg' },
     { type: 'line', label: 'Line', icon: '/icons/icon-line-chart.svg' },
-    { type: 'pie', label: 'Pictogram', icon: '/icons/icon-pictogram.svg' }
+    { type: 'pie', label: 'Pictogram', icon: '/icons/icon-pictogram.svg' },
+    { type: 'pie', label: 'Waffle', icon: '/icons/icon-waffle.svg' }
   ];
 
   function parseCSV(raw: string): { labels: string[]; values: number[][]; seriesNames: string[] } | null {
@@ -118,6 +123,10 @@
       pictogramOpen = true;
       return;
     }
+    if (starter.label === 'Waffle') {
+      waffleOpen = true;
+      return;
+    }
     openEditor(starter.type);
   }
 
@@ -141,7 +150,7 @@
         <textarea
           bind:value={csvData}
           placeholder={"eg.\nJan,12\nFeb,16\nMar,22\nApril,19"}
-          rows="8"
+          rows="5"
         ></textarea>
 
         <button
@@ -218,6 +227,11 @@
 <!-- Full-page pictogram editor -->
 {#if pictogramOpen}
   <PictogramEditor onclose={() => pictogramOpen = false} />
+{/if}
+
+<!-- Full-page waffle chart editor -->
+{#if waffleOpen}
+  <WaffleChartEditor onclose={() => waffleOpen = false} />
 {/if}
 
 <style>
@@ -362,7 +376,7 @@
 
   .starter-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 0.75rem;
   }
 
@@ -372,7 +386,7 @@
     align-items: center;
     justify-content: center;
     aspect-ratio: 1;
-    padding: 1rem;
+    padding: 0.5rem;
     background: var(--white);
     border: 1.5px solid var(--color-primary);
     border-radius: var(--radius-lg);
@@ -388,8 +402,8 @@
   }
 
   .starter-icon {
-    width: 32px;
-    height: 32px;
+    width: 48px;
+    height: 48px;
     filter: brightness(0) saturate(100%) invert(15%) sepia(80%) saturate(4000%) hue-rotate(260deg);
   }
 

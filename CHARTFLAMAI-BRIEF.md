@@ -35,7 +35,7 @@ The following chart types are supported in the AI pipeline (all rendered via Cha
 | **Stacked Bar** | `bar` (stacked: true) | `icon-stacked-bars.svg` | ✅ | Part-to-whole across categories |
 | **Pictogram** | Custom component | `icon-pictogram.svg` | ❌ | Manual only; separate from AI pipeline (see below) |
 
-> **Pictogram strategy**: Pictograms are **not** part of the AI→Chart.js pipeline. They require a fundamentally different data structure (a ratio, e.g. "7 out of 10") rather than Chart.js datasets. Pictograms are best suited as a **manual editorial choice** — the journalist sees a stat and decides to present it as a pictogram. The pictogram icon appears in the UI as a separate "Create a pictogram" action (not in the chart type toggle row). It opens a simple manual input (ported from the ChartFlam pictogram component with its slider). **Status: Coming Soon placeholder** — the icon and CTA are present but not wired up until the ChartFlam pictogram component is ported.
+> **Pictogram strategy**: Pictograms are **not** part of the AI→Chart.js pipeline. They require a fundamentally different data structure (a ratio, e.g. "7 out of 10") rather than Chart.js datasets. Pictograms are a **manual editorial choice** — the journalist sees a stat and decides to present it as a pictogram. The pictogram icon appears in the Classic tab's "start with a chart" grid. Clicking it opens `PictogramEditor.svelte`, a full-page editor ported from ChartFlam with: filled-icons slider (0–10, step 0.1), horizontal/vertical spacing, icon search drawer (118 icons across 12 categories), filled/unfilled colour pickers, background options, title/caption with font/size/alignment controls, and high-res 1080px PNG download. **Status: ✅ Implemented** — fully functional, matching ChartFlam's pictogram feature.
 
 ---
 
@@ -100,15 +100,15 @@ ChartFlamAI/
 │   │   ├── components/
 │   │   │   ├── SearchTab.svelte       # Search mode UI
 │   │   │   ├── SourceTab.svelte       # Source mode UI (PDF/URL)
-│   │   │   ├── PasteTab.svelte        # Paste mode UI
+│   │   │   ├── ClassicTab.svelte      # Classic (Paste) mode: CSV input, chart starters, pictogram launcher
 │   │   │   ├── AngleCard.svelte       # Accordion card: headline → expand to preview chart + controls
 │   │   │   ├── ChartDisplay.svelte    # Renders chart from data (Chart.js)
 │   │   │   ├── ChartTypeBar.svelte    # Row of chart type icons; active/inactive based on data compatibility
+│   │   │   ├── ChartEditor.svelte     # Full-page chart editor (pie/bar/line) with all customisation controls
+│   │   │   ├── PictogramEditor.svelte # Full-page pictogram editor (icon grid, slider, colours, download)
 │   │   │   ├── BottomDrawer.svelte    # Reusable rising drawer modal (used for Sources, Data, Explain)
-│   │   │   ├── EditDrawer.svelte      # Full-page edit drawer with customisation options (Coming Soon placeholder)
-│   │   │   ├── PictogramPlaceholder.svelte # "Create a pictogram" CTA (Coming Soon)
-│   │   │   ├── LoadingSpinner.svelte
-│   │   │   └── SourcePreview.svelte   # Shows extracted text/data before analysis
+│   │   │   ├── DrawerManager.svelte   # Manages drawer state and routing
+│   │   │   └── EditDrawer.svelte      # Edit drawer wrapper
 │   │   ├── stores/
 │   │   │   ├── aiState.js        # Centralized workflow state
 │   │   │   └── uiState.js        # UI-only state (active tab, loading, etc.)
@@ -118,8 +118,10 @@ ChartFlamAI/
 │   │   │   ├── extractors.js     # PDF.js, CSV parsing wrappers
 │   │   │   ├── json-repair.js    # LLM response repair (strip fences, fix trailing commas)
 │   │   │   └── formatters.js     # Convert responses to Chart.js format
+│   │   ├── data/
+│   │   │   └── pictogram-icons.ts # 118 SVG pictogram icons (12 categories), ported from ChartFlam
 │   │   └── config/
-│   │       ├── design.js         # Design tokens (colors, spacing, breakpoints)
+│   │       ├── design.ts         # Design tokens (colors, spacing, chart types)
 │   │       └── constants.js      # Magic numbers, limits, etc.
 │   ├── app.css                   # Global styles (matching ChartFlam)
 │   └── app.html                  # Root template
@@ -1398,8 +1400,8 @@ input:focus, textarea:focus, select:focus {
 | **Accordion angle cards** | ✅ Approved | Cards expand inline (not full-screen select); chart preview + type switching inside card |
 | **Chart type icon row per angle** | ✅ Approved | Active/inactive icons based on `compatibleChartTypes`; re-render from cache, no API call |
 | **BottomDrawer modals** | ✅ Approved | Reusable rising panel for Sources, Data, Explain; same style, rises to fit content |
-| **EditDrawer (Coming Soon)** | ✅ Approved | Full-page edit drawer placeholder; future port of ChartFlam edit controls |
-| **Pictograms outside AI pipeline** | ✅ Approved | Manual editorial choice only; "Create a pictogram" CTA as Coming Soon placeholder |
+| **ChartEditor (implemented)** | ✅ Done | Full-page chart editor with data, colours, style, title/caption, legend/axis controls |
+| **PictogramEditor (implemented)** | ✅ Done | Full-page pictogram editor ported from ChartFlam; manual editorial choice, outside AI pipeline |
 | **Audience as free-text input** | ✅ Approved | Too many niche audiences/locations for dropdown; text input is more flexible |
 | **Streaming responses** | ✅ Approved | Show angle cards progressively; better UX than blank 3–5s loading screen |
 | **ChartFlam integration deferred** | ✅ Approved | Validate product first; decide post-launch |

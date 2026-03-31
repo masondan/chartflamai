@@ -3,14 +3,16 @@
   import { browser } from '$app/environment';
   import type { ChartType } from '$lib/config/design';
   import { DESIGN_TOKENS } from '$lib/config/design';
+  import { chartArchive } from '$lib/stores/chartArchive.svelte';
 
   interface Props {
     chartType: ChartType;
     initialCsv?: string;
+    archiveId?: string;
     onclose: () => void;
   }
 
-  let { chartType: initChartType, initialCsv: initCsv = '', onclose }: Props = $props();
+  let { chartType: initChartType, initialCsv: initCsv = '', archiveId: initArchiveId, onclose }: Props = $props();
 
   // ─── Chart type ───
   let activeType = $state<ChartType>(initChartType);
@@ -104,6 +106,9 @@
 
   // ─── Accordion ───
   let openSection = $state<string>('data');
+
+  // ─── Archive tracking ───
+  let currentArchiveId = $state<string | undefined>(initArchiveId);
 
   // ─── Derived helpers ───
   let isPie = $derived(activeType === 'pie');
@@ -519,14 +524,127 @@
     chartImage.src = chartImageSrc;
   }
 
+  function captureThumb(): string {
+    if (!canvas) return '';
+    try {
+      const thumbCanvas = document.createElement('canvas');
+      thumbCanvas.width = 400;
+      thumbCanvas.height = 400;
+      const tCtx = thumbCanvas.getContext('2d')!;
+      tCtx.fillStyle = bgColor === 'transparent' ? '#FFFFFF' : (bgColor === 'white' ? '#FFFFFF' : bgColor);
+      tCtx.fillRect(0, 0, 400, 400);
+      const src = canvas;
+      const scale = Math.min(360 / src.width, 360 / src.height);
+      const w = src.width * scale;
+      const h = src.height * scale;
+      tCtx.drawImage(src, (400 - w) / 2, (400 - h) / 2, w, h);
+      return thumbCanvas.toDataURL('image/png', 0.7);
+    } catch { return ''; }
+  }
+
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === 'Escape') onclose();
   }
 
+  function restoreFromArchive() {
+    if (!initArchiveId) return;
+    const archived = chartArchive.getById(initArchiveId);
+    if (!archived) return;
+    const c = archived.config;
+    if (c.activeType) activeType = c.activeType;
+    if (c.isPieVariant) isPieVariant = c.isPieVariant;
+    if (c.labels) labels = [...c.labels];
+    if (c.values) values = c.values.map((v: number[]) => [...v]);
+    if (c.seriesNames) seriesNames = [...c.seriesNames];
+    if (c.sliceColors) sliceColors = [...c.sliceColors];
+    if (c.barSeriesColors) barSeriesColors = [...c.barSeriesColors];
+    if (c.lineColors) lineColors = [...c.lineColors];
+    if (c.markerColors) markerColors = [...c.markerColors];
+    if (c.bgColor !== undefined) bgColor = c.bgColor;
+    if (c.smoothing !== undefined) smoothing = c.smoothing;
+    if (c.sliceGap !== undefined) sliceGap = c.sliceGap;
+    if (c.donutCutout !== undefined) donutCutout = c.donutCutout;
+    if (c.barRounding !== undefined) barRounding = c.barRounding;
+    if (c.barSpacing !== undefined) barSpacing = c.barSpacing;
+    if (c.barAspectRatio !== undefined) barAspectRatio = c.barAspectRatio;
+    if (c.barOrientation) barOrientation = c.barOrientation;
+    if (c.barMode) barMode = c.barMode;
+    if (c.lineTension !== undefined) lineTension = c.lineTension;
+    if (c.lineWidth !== undefined) lineWidth = c.lineWidth;
+    if (c.lineAspectRatio !== undefined) lineAspectRatio = c.lineAspectRatio;
+    if (c.markerStyle) markerStyle = c.markerStyle;
+    if (c.markerSize !== undefined) markerSize = c.markerSize;
+    if (c.markerVisible !== undefined) markerVisible = c.markerVisible;
+    if (c.chartTitle !== undefined) chartTitle = c.chartTitle;
+    if (c.titleFont) titleFont = c.titleFont;
+    if (c.titleAlign) titleAlign = c.titleAlign;
+    if (c.titleBold !== undefined) titleBold = c.titleBold;
+    if (c.titleItalic !== undefined) titleItalic = c.titleItalic;
+    if (c.titleSize !== undefined) titleSize = c.titleSize;
+    if (c.titleLineHeight !== undefined) titleLineHeight = c.titleLineHeight;
+    if (c.titleColor) titleColor = c.titleColor;
+    if (c.chartCaption !== undefined) chartCaption = c.chartCaption;
+    if (c.captionFont) captionFont = c.captionFont;
+    if (c.captionAlign) captionAlign = c.captionAlign;
+    if (c.captionBold !== undefined) captionBold = c.captionBold;
+    if (c.captionItalic !== undefined) captionItalic = c.captionItalic;
+    if (c.captionSize !== undefined) captionSize = c.captionSize;
+    if (c.captionLineHeight !== undefined) captionLineHeight = c.captionLineHeight;
+    if (c.captionColor) captionColor = c.captionColor;
+    if (c.legendVisible !== undefined) legendVisible = c.legendVisible;
+    if (c.legendPosition) legendPosition = c.legendPosition;
+    if (c.legendSize !== undefined) legendSize = c.legendSize;
+    if (c.legendColor) legendColor = c.legendColor;
+    if (c.axisVisible !== undefined) axisVisible = c.axisVisible;
+    if (c.axisSize !== undefined) axisSize = c.axisSize;
+    if (c.axisBold !== undefined) axisBold = c.axisBold;
+    if (c.axisColor) axisColor = c.axisColor;
+  }
+
   onMount(() => {
+    restoreFromArchive();
     if (initCsv) parseAndApplyCsv();
     renderChart();
     return () => { if (chartInstance) chartInstance.destroy(); };
+  });
+
+  let saveTimer: ReturnType<typeof setTimeout>;
+  $effect(() => {
+    // Touch all reactive state to create dependencies
+    const _ = [
+      activeType, isPieVariant, csvText, labels, values, seriesNames,
+      sliceColors, barSeriesColors, lineColors, markerColors, bgColor,
+      smoothing, sliceGap, donutCutout, barRounding, barSpacing, barAspectRatio,
+      barOrientation, barMode, lineTension, lineWidth, lineAspectRatio,
+      markerStyle, markerSize, markerVisible,
+      chartTitle, titleFont, titleAlign, titleBold, titleItalic, titleSize, titleLineHeight, titleColor,
+      chartCaption, captionFont, captionAlign, captionBold, captionItalic, captionSize, captionLineHeight, captionColor,
+      legendVisible, legendPosition, legendSize, legendColor,
+      axisVisible, axisSize, axisBold, axisColor
+    ];
+
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      if (!browser) return;
+      const thumb = captureThumb();
+      if (!thumb) return;
+      const config = {
+        activeType, isPieVariant, labels: [...labels], values: values.map(v => [...v]),
+        seriesNames: [...seriesNames], sliceColors: [...sliceColors],
+        barSeriesColors: [...barSeriesColors], lineColors: [...lineColors],
+        markerColors: [...markerColors], bgColor,
+        smoothing, sliceGap, donutCutout, barRounding, barSpacing, barAspectRatio,
+        barOrientation, barMode, lineTension, lineWidth, lineAspectRatio,
+        markerStyle, markerSize, markerVisible,
+        chartTitle, titleFont, titleAlign, titleBold, titleItalic, titleSize, titleLineHeight, titleColor,
+        chartCaption, captionFont, captionAlign, captionBold, captionItalic, captionSize, captionLineHeight, captionColor,
+        legendVisible, legendPosition, legendSize, legendColor,
+        axisVisible, axisSize, axisBold, axisColor
+      };
+      currentArchiveId = chartArchive.save('chart', config, thumb, currentArchiveId);
+    }, 800);
+
+    return () => clearTimeout(saveTimer);
   });
 </script>
 
@@ -648,9 +766,8 @@
                   </div>
                 {/each}
               </div>
-              <button class="add-row-btn" onclick={addRow}>
-                <img src="/icons/icon-add.svg" alt="" width="14" height="14" />
-                Add row
+              <button class="add-row-btn" onclick={addRow} title="Add row" aria-label="Add row">
+                <img src="/icons/icon-add.svg" alt="" width="18" height="18" />
               </button>
               <div class="csv-divider"><span>or paste CSV</span></div>
             {/if}
@@ -1261,7 +1378,7 @@
   }
 
   .section-body {
-    padding: 0 1rem 1rem;
+    padding: 0.75rem 1rem 1rem;
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
@@ -1318,20 +1435,22 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.375rem;
-    padding: 0.5rem;
+    width: 36px;
+    height: 36px;
+    margin: 0.25rem auto 0;
+    padding: 0;
     background: none;
-    border: 1px dashed var(--color-border);
-    border-radius: var(--radius-md);
-    color: var(--text-medium);
-    font-size: var(--font-size-sm);
+    border: none;
+    border-radius: var(--radius-round);
     cursor: pointer;
-    min-height: 38px;
+    color: var(--text-medium);
+    min-height: 36px;
+    min-width: 36px;
   }
 
   .add-row-btn:hover {
-    border-color: var(--color-primary);
     color: var(--color-primary);
+    background: var(--color-highlight);
   }
 
   .csv-divider {
@@ -1438,6 +1557,23 @@
     min-height: auto;
     padding: 0;
     border: none;
+  }
+
+  .color-picker {
+    width: 36px;
+    height: 36px;
+    padding: 2px;
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    background: var(--white);
+    min-height: 36px;
+    min-width: 36px;
+    flex-shrink: 0;
+  }
+
+  .color-picker:hover {
+    border-color: var(--color-primary);
   }
 
   .style-divider {

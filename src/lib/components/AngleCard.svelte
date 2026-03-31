@@ -2,6 +2,7 @@
   import { aiState } from '$lib/stores/aiState.svelte';
   import { uiState } from '$lib/stores/uiState.svelte';
   import ChartDisplay from './ChartDisplay.svelte';
+  import ChartEditor from './ChartEditor.svelte';
   import ChartTypeBar from './ChartTypeBar.svelte';
   import type { AngleData } from '$lib/stores/aiState.svelte';
   import type { ChartType } from '$lib/config/design';
@@ -16,6 +17,18 @@
   let currentChartType = $derived(
     (aiState.value.angleChartTypes[angle.id] as ChartType) || angle.suggestedChartType
   );
+
+  let editorOpen = $state(false);
+
+  function getAngleCsv(): string {
+    const { labels, datasets } = angle.data;
+    if (datasets.length === 1) {
+      return labels.map((l, i) => `${l},${datasets[0].data[i]}`).join('\n');
+    }
+    const header = ['Label', ...datasets.map(d => d.label)].join(',');
+    const rows = labels.map((l, i) => [l, ...datasets.map(d => d.data[i])].join(','));
+    return [header, ...rows].join('\n');
+  }
 
   function handleChartTypeChange(type: ChartType) {
     aiState.setAngleChartType(angle.id, type);
@@ -60,13 +73,21 @@
         <button class="action-btn" onclick={() => uiState.openDrawer('explain', angle.id)}>
           Explain
         </button>
-        <button class="edit-btn" title="Edit chart" aria-label="Edit chart">
+        <button class="edit-btn" title="Edit chart" aria-label="Edit chart" onclick={() => editorOpen = true}>
           <img src="/icons/icon-edit-fill.svg" alt="" width="18" height="18" />
         </button>
       </div>
     </div>
   {/if}
 </div>
+
+{#if editorOpen}
+  <ChartEditor
+    chartType={currentChartType}
+    initialCsv={getAngleCsv()}
+    onclose={() => editorOpen = false}
+  />
+{/if}
 
 <style>
   .angle-card {
@@ -139,10 +160,10 @@
     padding: 0.375rem 0.75rem;
     font-size: var(--font-size-xs);
     font-weight: var(--font-weight-medium);
-    background: var(--bg-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-xl);
-    color: var(--text-dark);
+    background: var(--white);
+    border: 1.5px solid var(--color-primary);
+    border-radius: var(--radius-md);
+    color: var(--color-primary);
     cursor: pointer;
     min-height: 32px;
     min-width: auto;
@@ -151,23 +172,22 @@
 
   .action-btn:hover {
     background: var(--color-highlight);
-    border-color: var(--color-primary);
   }
 
   .edit-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     padding: 0;
     margin-left: auto;
-    background: none;
+    background: var(--white);
     border: 1.5px solid var(--color-primary);
     border-radius: var(--radius-md);
     cursor: pointer;
-    min-height: 36px;
-    min-width: 36px;
+    min-height: 32px;
+    min-width: 32px;
   }
 
   .edit-btn:hover {

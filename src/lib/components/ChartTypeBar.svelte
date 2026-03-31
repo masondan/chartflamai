@@ -65,7 +65,7 @@
   }
 
   .type-btn.selected {
-    border-bottom: 2px solid var(--color-primary);
+    background: var(--color-highlight);
   }
 
   .type-btn.disabled {

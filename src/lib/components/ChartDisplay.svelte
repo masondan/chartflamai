@@ -17,6 +17,16 @@
   let chartInstance: any = null;
   let ChartJs: any = null;
 
+  function normalizeChartType(type: string): ChartType {
+    const t = type.replace(/[\s_-]+/g, '').toLowerCase();
+    if (t === 'stackedbar') return 'stackedBar';
+    if (t === 'groupedbar') return 'groupedBar';
+    if (t === 'horizontalbar') return 'bar';
+    if (t === 'doughnut' || t === 'donut') return 'pie';
+    if (['pie', 'bar', 'line'].includes(t)) return t as ChartType;
+    return 'bar';
+  }
+
   function getChartJsType(type: ChartType): string {
     switch (type) {
       case 'stackedBar': return 'bar';
@@ -41,6 +51,7 @@
             font: { family: "'Inter', sans-serif", size: 11, weight: '500' },
             padding: 10,
             usePointStyle: true,
+            pointStyle: 'circle',
             pointStyleWidth: 8,
             boxWidth: 8,
             color: '#555'
@@ -142,16 +153,18 @@
       chartInstance = null;
     }
 
+    const safeType = normalizeChartType(chartType);
+
     // Deep-clone to strip Svelte 5 $state proxies
     const plainData = JSON.parse(JSON.stringify({
       labels: angle.data.labels,
-      datasets: applyColors(angle.data.datasets, chartType)
+      datasets: applyColors(angle.data.datasets, safeType)
     }));
 
     chartInstance = new ChartJs(canvas, {
-      type: getChartJsType(chartType),
+      type: getChartJsType(safeType),
       data: plainData,
-      options: getChartJsOptions(chartType)
+      options: getChartJsOptions(safeType)
     });
   }
 

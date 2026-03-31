@@ -1,6 +1,9 @@
 <script lang="ts">
   import { aiState } from '$lib/stores/aiState.svelte';
   import { uiState } from '$lib/stores/uiState.svelte';
+  import { extractPdfText, truncateForLLM } from '$lib/utils/extractors';
+
+  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
   let sourceOpen = $state(true);
   let summaryOpen = $state(false);
@@ -15,6 +18,11 @@
   let suggestAngles = $state(false);
   let chartTypeHint = $state('any');
 
+  let summaryText = $state('');
+  let summaryLoading = $state(false);
+  let summaryError = $state('');
+  let fileError = $state('');
+
   const chartTypeOptions = [
     { id: 'any', label: 'Any' },
     { id: 'pie', label: 'Pie' },
@@ -22,26 +30,62 @@
     { id: 'line', label: 'Line' }
   ];
 
-  function handleFileChange(e: Event) {
+  async function handleFileChange(e: Event) {
     const input = e.target as HTMLInputElement;
     const file = input.files?.[0];
     if (!file) return;
 
+    fileError = '';
+    summaryError = '';
+
+    if (file.size > MAX_FILE_SIZE) {
+      fileError = `File too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Maximum size is 10MB.`;
+      input.value = '';
+      return;
+    }
+
     fileName = file.name;
     aiState.value.sourceFile = file;
     aiState.value.sourceType = 'pdf';
-    aiState.value.extractedText = `[PDF uploaded: ${file.name}, ${(file.size / 1024).toFixed(0)}KB — full extraction coming in Tier 1]`;
 
     sourceOpen = false;
     summaryOpen = true;
-    explorerOpen = true;
+    summaryLoading = true;
+    summaryText = '';
+
+    try {
+      const rawText = await extractPdfText(file);
+      const truncated = truncateForLLM(rawText);
+      aiState.value.extractedText = truncated;
+
+      // Call summarize API
+      const res = await fetch('/api/summarize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ extractedText: truncated })
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to generate summary');
+      }
+
+      const data = await res.json();
+      summaryText = data.summary || 'No summary available.';
+      explorerOpen = true;
+    } catch (err) {
+      summaryError = err instanceof Error ? err.message : 'Failed to extract and summarise document.';
+      summaryText = '';
+    } finally {
+      summaryLoading = false;
+    }
   }
 
   function handleUrlSubmit() {
     if (!urlInput.trim()) return;
     aiState.value.sourceUrl = urlInput.trim();
     aiState.value.sourceType = 'url';
-    aiState.value.extractedText = `[URL provided: ${urlInput.trim()} — content will be fetched via Perplexity]`;
+    aiState.value.extractedText = urlInput.trim();
+    summaryText = `URL source: ${urlInput.trim()}. Content will be fetched and analysed when you tap "Chart it".`;
 
     sourceOpen = false;
     summaryOpen = true;
@@ -132,6 +176,10 @@
           {/if}
         </label>
 
+        {#if fileError}
+          <p class="file-error">{fileError}</p>
+        {/if}
+
         <div class="divider"><span class="divider-text">or</span></div>
 
         <div class="url-row">
@@ -147,7 +195,7 @@
   </div>
 
   <!-- Source summary -->
-  {#if hasSource}
+  {#if hasSource || summaryLoading}
     <div class="section-card card" class:collapsed={!summaryOpen}>
       <button class="accordion-header" class:open={summaryOpen} onclick={() => summaryOpen = !summaryOpen} aria-expanded={summaryOpen}>
         <span class="accordion-title">Source summary</span>
@@ -157,7 +205,16 @@
       </button>
       {#if summaryOpen}
         <div class="section-body">
-          <p class="summary-text">{aiState.value.extractedText}</p>
+          {#if summaryLoading}
+            <div class="summary-loading">
+              <span class="spinner"></span>
+              <span>Extracting and summarising document…</span>
+            </div>
+          {:else if summaryError}
+            <p class="summary-error">{summaryError}</p>
+          {:else if summaryText}
+            <p class="summary-text">{summaryText}</p>
+          {/if}
         </div>
       {/if}
     </div>
@@ -387,11 +444,41 @@
     cursor: not-allowed;
   }
 
+  .file-error {
+    font-size: var(--font-size-sm);
+    color: var(--color-error);
+    font-weight: var(--font-weight-medium);
+    margin: 0;
+    text-align: center;
+  }
+
   .summary-text {
     font-size: var(--font-size-sm);
     color: var(--text-secondary);
     line-height: var(--line-height-relaxed);
-    white-space: pre-wrap;
+    white-space: pre-line;
+    margin: 0;
+  }
+
+  .summary-text + .summary-text {
+    margin-top: 0.75rem;
+  }
+
+  .summary-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.625rem;
+    padding: 0.75rem;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-primary);
+  }
+
+  .summary-error {
+    font-size: var(--font-size-sm);
+    color: var(--color-error);
+    font-weight: var(--font-weight-medium);
     margin: 0;
   }
 

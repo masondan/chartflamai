@@ -1,0 +1,32 @@
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 5x5 grid of squares representing waffle chart -->
+  <rect x="2" y="2" width="3" height="3" fill="currentColor" opacity="0.9"/>
+  <rect x="6" y="2" width="3" height="3" fill="currentColor" opacity="0.8"/>
+  <rect x="10" y="2" width="3" height="3" fill="currentColor" opacity="0.7"/>
+  <rect x="14" y="2" width="3" height="3" fill="currentColor" opacity="0.6"/>
+  <rect x="18" y="2" width="3" height="3" fill="currentColor" opacity="0.5"/>
+  
+  <rect x="2" y="6" width="3" height="3" fill="currentColor" opacity="0.9"/>
+  <rect x="6" y="6" width="3" height="3" fill="currentColor" opacity="0.8"/>
+  <rect x="10" y="6" width="3" height="3" fill="currentColor" opacity="0.7"/>
+  <rect x="14" y="6" width="3" height="3" fill="currentColor" opacity="0.6"/>
+  <rect x="18" y="6" width="3" height="3" fill="currentColor" opacity="0.5"/>
+  
+  <rect x="2" y="10" width="3" height="3" fill="currentColor" opacity="0.9"/>
+  <rect x="6" y="10" width="3" height="3" fill="currentColor" opacity="0.8"/>
+  <rect x="10" y="10" width="3" height="3" fill="currentColor" opacity="0.7"/>
+  <rect x="14" y="10" width="3" height="3" fill="currentColor" opacity="0.6"/>
+  <rect x="18" y="10" width="3" height="3" fill="currentColor" opacity="0.5"/>
+  
+  <rect x="2" y="14" width="3" height="3" fill="currentColor" opacity="0.9"/>
+  <rect x="6" y="14" width="3" height="3" fill="currentColor" opacity="0.8"/>
+  <rect x="10" y="14" width="3" height="3" fill="currentColor" opacity="0.7"/>
+  <rect x="14" y="14" width="3" height="3" fill="currentColor" opacity="0.6"/>
+  <rect x="18" y="14" width="3" height="3" fill="currentColor" opacity="0.5"/>
+  
+  <rect x="2" y="18" width="3" height="3" fill="currentColor" opacity="0.9"/>
+  <rect x="6" y="18" width="3" height="3" fill="currentColor" opacity="0.8"/>
+  <rect x="10" y="18" width="3" height="3" fill="currentColor" opacity="0.7"/>
+  <rect x="14" y="18" width="3" height="3" fill="currentColor" opacity="0.6"/>
+  <rect x="18" y="18" width="3" height="3" fill="currentColor" opacity="0.5"/>
+</svg>

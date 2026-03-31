@@ -1,9 +1,15 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { uiState } from '$lib/stores/uiState.svelte';
   import { aiState } from '$lib/stores/aiState.svelte';
   import SearchTab from '$lib/components/SearchTab.svelte';
   import SourceTab from '$lib/components/SourceTab.svelte';
   import ClassicTab from '$lib/components/ClassicTab.svelte';
+  import ChartEditor from '$lib/components/ChartEditor.svelte';
+  import PictogramEditor from '$lib/components/PictogramEditor.svelte';
+  import WaffleChartEditor from '$lib/components/WaffleChartEditor.svelte';
+  import type { ArchivedChart } from '$lib/stores/chartArchive.svelte';
+  import type { ChartType } from '$lib/config/design';
 
   const tabs = [
     { id: 'search' as const, label: 'Search', ai: true },
@@ -13,6 +19,9 @@
 
   // Per-tab results cache so switching tabs doesn't lose work
   let tabCache: Record<string, { response: any; step: string }> = {};
+
+  // Archive edit state — editors opened from Saved Charts
+  let archiveEditor = $state<{ type: 'chart' | 'waffle' | 'pictogram'; chart: ArchivedChart } | null>(null);
 
   function switchTab(tab: typeof tabs[number]['id']) {
     if (uiState.value.activeTab === tab) return;
@@ -40,6 +49,16 @@
     uiState.closeDrawer();
     uiState.setTab(tab);
   }
+
+  function handleArchiveEdit(e: Event) {
+    const chart = (e as CustomEvent<ArchivedChart>).detail;
+    archiveEditor = { type: chart.editorType, chart };
+  }
+
+  onMount(() => {
+    window.addEventListener('archive-edit', handleArchiveEdit);
+    return () => window.removeEventListener('archive-edit', handleArchiveEdit);
+  });
 </script>
 
 <div class="tabs">
@@ -66,6 +85,25 @@
     <ClassicTab />
   {/if}
 </div>
+
+<!-- Archive edit — editors opened from Saved Charts drawer -->
+{#if archiveEditor?.type === 'chart'}
+  <ChartEditor
+    chartType={(archiveEditor.chart.config.activeType ?? 'bar') as ChartType}
+    archiveId={archiveEditor.chart.id}
+    onclose={() => archiveEditor = null}
+  />
+{:else if archiveEditor?.type === 'pictogram'}
+  <PictogramEditor
+    archiveId={archiveEditor.chart.id}
+    onclose={() => archiveEditor = null}
+  />
+{:else if archiveEditor?.type === 'waffle'}
+  <WaffleChartEditor
+    archiveId={archiveEditor.chart.id}
+    onclose={() => archiveEditor = null}
+  />
+{/if}
 
 <style>
   .tabs {
