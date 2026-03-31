@@ -370,7 +370,8 @@
 
   .divider-text {
     font-size: var(--font-size-sm);
-    color: var(--text-medium);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-dark);
     white-space: nowrap;
   }
 

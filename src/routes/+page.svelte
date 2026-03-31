@@ -124,7 +124,7 @@
     font-size: var(--font-size-sm);
     background: var(--white);
     color: var(--color-primary);
-    border: 1.5px solid var(--color-primary);
+    border: 1px solid var(--color-primary);
     transition: all var(--duration-fast) ease;
   }
 
@@ -132,6 +132,10 @@
     background: var(--color-primary);
     color: var(--white);
     border-color: var(--color-primary);
+  }
+
+  .tab-btn.active .sparkle {
+    filter: brightness(0) invert(1);
   }
 
   .sparkle {

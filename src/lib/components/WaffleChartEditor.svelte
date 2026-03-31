@@ -495,12 +495,24 @@
       >{chartTitle}</h3>
     {/if}
 
+    <!-- Legend at top -->
+    {#if legendVisible && waffleData.length > 0 && legendPosition === 'top'}
+      <div class="waffle-legend-row">
+        {#each waffleData as item}
+          <div class="legend-item">
+            <div class="legend-color" style="background-color: {item.color};"></div>
+            <span class="legend-label" style="font-size: {legendSize}px; color: {legendColor};">{item.label}</span>
+          </div>
+        {/each}
+      </div>
+    {/if}
+
     <div class="canvas-wrapper">
       <canvas bind:this={canvasEl} class="waffle-canvas"></canvas>
     </div>
     
-    <!-- Legend (horizontal row) -->
-    {#if legendVisible && waffleData.length > 0}
+    <!-- Legend at bottom -->
+    {#if legendVisible && waffleData.length > 0 && legendPosition === 'bottom'}
       <div class="waffle-legend-row">
         {#each waffleData as item}
           <div class="legend-item">
@@ -546,7 +558,7 @@
           <textarea
             class="csv-input"
             bind:value={csvInput}
-            placeholder={'eg.\nCategory A,40\nCategory B,35\nCategory C,15'}
+            placeholder={'Category A,40\nCategory B,35\nCategory C,15'}
             rows="4"
           ></textarea>
           <button class="apply-csv-btn secondary" onclick={applyCsv} disabled={!csvInput.trim()}>
@@ -562,16 +574,14 @@
                 <input
                   type="text"
                   class="label-input"
-                  value={row.label}
-                  oninput={(e) => updateLabel(i, (e.target as HTMLInputElement).value)}
-                  placeholder="Label"
+                  placeholder={row.label}
+                  oninput={(e) => updateLabel(i, (e.target as HTMLInputElement).value || row.label)}
                 />
                 <input
                   type="number"
                   class="value-input"
-                  value={row.value}
-                  min="1"
-                  oninput={(e) => updateValue(i, Number((e.target as HTMLInputElement).value) || 0)}
+                  placeholder={String(row.value)}
+                  oninput={(e) => updateValue(i, Number((e.target as HTMLInputElement).value) || row.value)}
                 />
                 {#if waffleData.length > 1}
                   <button
@@ -841,12 +851,6 @@
               value={legendSize}
               oninput={(e) => { legendSize = Number((e.target as HTMLInputElement).value); }}
             />
-            <button class="ctrl-btn" class:active={legendPosition === 'bottom'} onclick={() => { legendPosition = 'bottom'; }} title="Legend below">
-              <img src="/icons/icon-align-bottom.svg" alt="" width="16" height="16" />
-            </button>
-            <button class="ctrl-btn" class:active={legendPosition === 'top'} onclick={() => { legendPosition = 'top'; }} title="Legend above">
-              <img src="/icons/icon-align-top.svg" alt="" width="16" height="16" />
-            </button>
             <button class="ctrl-btn" onclick={() => { legendVisible = !legendVisible; }} title="Show/hide legend">
               <img src={legendVisible ? '/icons/icon-visibility.svg' : '/icons/icon-no-visibility.svg'} alt="" width="16" height="16" />
             </button>
@@ -857,6 +861,16 @@
               oninput={(e) => { legendColor = (e.target as HTMLInputElement).value; }}
             />
           </div>
+          <div class="legend-position-row">
+            <button class="legend-position-btn" class:active={legendPosition === 'bottom'} onclick={() => { legendPosition = 'bottom'; }} title="Legend below">
+              <img src="/icons/icon-align-bottom.svg" alt="" width="16" height="16" />
+              <span>Legend below</span>
+            </button>
+            <button class="legend-position-btn" class:active={legendPosition === 'top'} onclick={() => { legendPosition = 'top'; }} title="Legend above">
+              <img src="/icons/icon-align-top.svg" alt="" width="16" height="16" />
+              <span>Legend above</span>
+            </button>
+          </div>
         </div>
       {/if}
     </div>
@@ -866,7 +880,8 @@
   <!-- Download button (footer) -->
   <div class="editor-footer">
     <button class="download-btn primary" onclick={downloadWaffle} disabled={!hasUserData}>
-      Download PNG
+      <img src="/icons/icon-download.svg" alt="" width="18" height="18" />
+      Download
     </button>
   </div>
 </div>
@@ -1055,7 +1070,6 @@
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
-    border-top: 1px solid var(--color-border);
   }
 
   /* CSV & Data */
@@ -1071,14 +1085,15 @@
     border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
     font-family: 'Inter', monospace;
-    font-size: 0.8rem;
+    font-size: var(--font-size-sm);
     background: white;
     color: var(--text-dark);
     resize: vertical;
   }
 
   .csv-input::placeholder {
-    color: var(--text-medium);
+    color: #999999;
+    opacity: 1;
   }
 
   .apply-csv-btn {
@@ -1101,8 +1116,9 @@
   }
 
   .csv-divider span {
-    font-size: 0.8rem;
-    color: var(--text-medium);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-dark);
     white-space: nowrap;
   }
 
@@ -1125,6 +1141,12 @@
     border-radius: var(--radius-sm);
     font-size: 0.85rem;
     background: white;
+  }
+
+  .label-input::placeholder,
+  .value-input::placeholder {
+    color: #999999;
+    opacity: 1;
   }
 
   .label-input {
@@ -1176,8 +1198,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
+    width: auto;
+    height: auto;
     margin: 0.25rem auto 0;
     padding: 0;
     background: none;
@@ -1185,13 +1207,15 @@
     border-radius: var(--radius-round);
     cursor: pointer;
     color: var(--text-medium);
-    min-height: 36px;
-    min-width: 36px;
+  }
+
+  .add-row-btn img {
+    width: 32px;
+    height: 32px;
   }
 
   .add-row-btn:hover {
     color: var(--color-primary);
-    background: var(--color-highlight);
   }
 
   .add-row-btn:disabled {
@@ -1287,22 +1311,28 @@
     height: 40px;
     background: white;
     border: 1.5px solid var(--color-border);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-md);
     cursor: pointer;
-    color: var(--text-medium);
     transition: all var(--duration-fast) ease;
     min-height: 40px;
   }
 
   .shape-btn:hover {
     border-color: var(--color-primary);
-    background: var(--color-highlight);
   }
 
   .shape-btn.active {
-    border-color: var(--color-primary);
-    background: var(--color-highlight);
-    color: var(--text-dark);
+    background: #555555;
+    border: none;
+    color: white;
+  }
+
+  .shape-btn svg {
+    filter: brightness(0) saturate(100%);
+  }
+
+  .shape-btn.active svg {
+    filter: brightness(0) invert(1);
   }
 
   .control-group {
@@ -1347,13 +1377,68 @@
     align-items: center;
   }
 
+  .ctrl-icon {
+    width: 20px;
+    height: 20px;
+    filter: brightness(0) saturate(100%);
+    flex-shrink: 0;
+  }
+
+  /* ─── Legend position row ─── */
+  .legend-position-row {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+  }
+
+  .legend-position-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--white);
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    color: var(--text-dark);
+    min-height: 36px;
+    transition: all var(--duration-fast) ease;
+  }
+
+  .legend-position-btn.active {
+    background: #555555;
+    color: var(--white);
+    border-color: #555555;
+  }
+
+  .legend-position-btn img {
+    width: 16px;
+    height: 16px;
+    filter: brightness(0) saturate(100%);
+  }
+
+  .legend-position-btn.active img {
+    filter: brightness(0) invert(1);
+  }
+
   .font-select {
     flex: 1;
-    padding: 0.375rem 0.5rem;
+    padding: 0 1.5rem 0 0.5rem;
+    height: 36px;
     border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-md);
     font-size: 0.85rem;
     background: white;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M6 8l4 4 4-4' stroke='%23888888' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.5rem center;
+    background-size: 16px 16px;
   }
 
   .ctrl-btn {
@@ -1365,22 +1450,35 @@
     padding: 0;
     background: none;
     border: 1.5px solid var(--color-border);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-md);
     cursor: pointer;
-    color: var(--text-medium);
-    transition: all var(--duration-fast) ease;
     min-height: 36px;
     min-width: 36px;
+    transition: all var(--duration-fast) ease;
   }
 
-  .ctrl-btn:hover {
+  .ctrl-btn:hover:not(:disabled) {
     border-color: var(--color-primary);
   }
 
   .ctrl-btn.active {
-    border-color: var(--color-primary);
-    background: var(--color-highlight);
-    color: var(--text-dark);
+    background: #555555;
+    border: none;
+  }
+
+  .ctrl-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  .ctrl-btn img {
+    width: 16px;
+    height: 16px;
+    filter: brightness(0) saturate(100%);
+  }
+
+  .ctrl-btn.active img {
+    filter: brightness(0) invert(1);
   }
 
   .style-slider {
@@ -1389,22 +1487,50 @@
     min-height: auto;
     padding: 0;
     border: none;
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 6px;
+    background: #e0e0e0;
+    border-radius: 3px;
+    outline: none;
+  }
+
+  .style-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    background: var(--color-primary);
+    cursor: pointer;
+    border-radius: var(--radius-round);
+  }
+
+  .style-slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    background: var(--color-primary);
+    cursor: pointer;
+    border-radius: var(--radius-round);
+    border: none;
+  }
+
+  .style-slider::-moz-range-track {
+    background: transparent;
+    border: none;
   }
 
   .color-picker {
     width: 36px;
     height: 36px;
     padding: 2px;
-    border: 1.5px solid var(--color-border);
+    border: none;
     border-radius: var(--radius-sm);
     cursor: pointer;
-    background: white;
+    background: var(--white);
     min-height: 36px;
     min-width: 36px;
-  }
-
-  .color-picker:hover {
-    border-color: var(--color-primary);
+    flex-shrink: 0;
   }
 
   /* Footer */
@@ -1416,6 +1542,14 @@
   .download-btn {
     width: 100%;
     min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .download-btn img {
+    filter: brightness(0) invert(1);
   }
 
   .download-btn:disabled {

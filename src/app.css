@@ -179,13 +179,14 @@ button.primary:hover:not(:disabled) {
 }
 
 button.secondary {
-  background-color: var(--white);
-  color: var(--color-primary);
-  border: 1px solid var(--color-primary);
+  background-color: var(--bg-light);
+  color: var(--text-dark);
+  border: 1px solid var(--bg-light);
+  font-weight: var(--font-weight-semibold);
 }
 
 button.secondary:hover:not(:disabled) {
-  background-color: var(--color-highlight);
+  background-color: #e0e0e0;
 }
 
 input, textarea, select {

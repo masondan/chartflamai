@@ -42,21 +42,22 @@
     display: flex;
     gap: 0.25rem;
     justify-content: flex-end;
+    padding-right: 0.5rem;
   }
 
   .type-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
+    width: 34px;
+    height: 34px;
     padding: 6px;
     background: none;
     border: none;
     border-radius: var(--radius-sm);
     cursor: pointer;
-    min-height: 36px;
-    min-width: 36px;
+    min-height: 34px;
+    min-width: 34px;
     transition: all var(--duration-fast) ease;
   }
 

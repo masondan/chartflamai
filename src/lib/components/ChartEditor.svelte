@@ -32,8 +32,8 @@
 
   // ─── Data state ───
   let csvText = $state(initCsv);
-  let labels = $state<string[]>(['Item 1', 'Item 2', 'Item 3', 'Item 4']);
-  let values = $state<number[][]>([[25, 35, 20, 20]]);
+  let labels = $state<string[]>(['Item 1', 'Item 2', 'Item 3']);
+  let values = $state<number[][]>([[25, 35, 20]]);
   let seriesNames = $state<string[]>(['Value']);
 
   // ─── Colour state ───
@@ -490,7 +490,11 @@
       tempCtx.font = `${titleBold ? 'bold' : 'normal'} ${titleItalic ? 'italic' : 'normal'} 48px '${titleFont}', sans-serif`;
       tempCtx.textAlign = titleAlign;
       const titleX = titleAlign === 'left' ? 40 : (titleAlign === 'right' ? exportWidth - 40 : exportWidth / 2);
-      tempCtx.fillText(chartTitle, titleX, yOffset);
+      const titleLines = chartTitle.split('\n');
+      const lineHeight = 48 * titleLineHeight;
+      titleLines.forEach((line, idx) => {
+        tempCtx.fillText(line, titleX, yOffset + (idx * lineHeight));
+      });
       yOffset += 80;
     }
 
@@ -512,7 +516,11 @@
         tempCtx.font = `${captionBold ? 'bold' : 'normal'} ${captionItalic ? 'italic' : 'normal'} 28px '${captionFont}', sans-serif`;
         tempCtx.textAlign = captionAlign;
         const captionX = captionAlign === 'left' ? 40 : (captionAlign === 'right' ? exportWidth - 40 : exportWidth / 2);
-        tempCtx.fillText(chartCaption, captionX, yOffset);
+        const captionLines = chartCaption.split('\n');
+        const captionLineSpacing = 28 * captionLineHeight;
+        captionLines.forEach((line, idx) => {
+          tempCtx.fillText(line, captionX, yOffset + (idx * captionLineSpacing));
+        });
       }
 
       const link = document.createElement('a');
@@ -690,7 +698,7 @@
           "
         >{chartTitle}</h3>
       {/if}
-      <div class="canvas-container">
+      <div class="canvas-container" class:pie-square={isPie} style="height: {isPie ? '240px' : isBar ? (240 * (100 / barAspectRatio)) + 'px' : (240 * (100 / lineAspectRatio)) + 'px'};">
         {#if browser}
           <canvas bind:this={canvas}></canvas>
         {/if}
@@ -746,20 +754,21 @@
                 {#each labels as label, i}
                   <div class="data-row">
                     <input
-                      type="text"
-                      class="label-input"
-                      value={label}
-                      oninput={(e) => updateLabel(i, (e.target as HTMLInputElement).value)}
-                      placeholder="Label"
-                    />
+                       type="text"
+                       class="label-input"
+                       value=""
+                       oninput={(e) => updateLabel(i, (e.target as HTMLInputElement).value)}
+                       placeholder={label}
+                     />
                     {#each values as series, si}
-                      <input
-                        type="number"
-                        class="value-input"
-                        value={series[i]}
-                        oninput={(e) => updateValue(si, i, Number((e.target as HTMLInputElement).value) || 0)}
-                      />
-                    {/each}
+                       <input
+                         type="number"
+                         class="value-input"
+                         value=""
+                         oninput={(e) => updateValue(si, i, Number((e.target as HTMLInputElement).value) || 0)}
+                         placeholder={String(series[i])}
+                       />
+                     {/each}
                     <button class="row-delete" onclick={() => removeRow(i)} title="Remove" aria-label="Remove row">
                       <img src="/icons/icon-trash.svg" alt="" width="14" height="14" />
                     </button>
@@ -767,7 +776,7 @@
                 {/each}
               </div>
               <button class="add-row-btn" onclick={addRow} title="Add row" aria-label="Add row">
-                <img src="/icons/icon-add.svg" alt="" width="18" height="18" />
+                <img src="/icons/icon-add.svg" alt="" width="32" height="32" />
               </button>
               <div class="csv-divider"><span>or paste CSV</span></div>
             {/if}
@@ -776,7 +785,7 @@
             <textarea
               class="csv-input"
               bind:value={csvText}
-              placeholder={isPie ? 'Label,Value\nJan,12\nFeb,16' : isBar ? 'Paste CSV with header row\nCategory,Series\nlabel,value\nUp to three series:\nlabel,value,value,value' : 'Paste CSV data\nOne line: label,value\nTwo lines: label,value,value'}
+              placeholder={isPie ? 'Label,Value\nItem 1,25\nItem 2,35\nItem 3,20' : isBar ? 'Label,Value\nItem 1,25\nItem 2,35\nItem 3,20' : 'Label,Value\nItem 1,25\nItem 2,35\nItem 3,20'}
               rows={isPie ? 4 : 6}
             ></textarea>
 
@@ -905,8 +914,8 @@
                   <img src="/icons/icon-corner-smoothing.svg" alt="" width="18" height="18" />
                 </button>
                 <button class="ctrl-btn" class:active={pieStyleControl === 'gap'} onclick={() => { pieStyleControl = 'gap'; }} title="Slice gap">
-                  <img src="/icons/icon-corner-smoothing.svg" alt="" width="18" height="18" />
-                </button>
+                   <img src="/icons/icon-horizontal-space.svg" alt="" width="18" height="18" />
+                 </button>
                 {#if isDonut}
                   <button class="ctrl-btn" class:active={pieStyleControl === 'hole'} onclick={() => { pieStyleControl = 'hole'; }} title="Donut hole size">
                     <img src="/icons/icon-donut-hole-size.svg" alt="" width="18" height="18" />
@@ -928,8 +937,8 @@
                   <img src="/icons/icon-corner-smoothing.svg" alt="" width="18" height="18" />
                 </button>
                 <button class="ctrl-btn" class:active={barStyleControl === 'gap'} onclick={() => { barStyleControl = 'gap'; }} title="Bar Spacing">
-                  <img src="/icons/icon-corner-smoothing.svg" alt="" width="18" height="18" />
-                </button>
+                   <img src="/icons/icon-horizontal-space.svg" alt="" width="18" height="18" />
+                 </button>
                 <button class="ctrl-btn" class:active={barStyleControl === 'resize'} onclick={() => { barStyleControl = 'resize'; }} title="Chart Size">
                   <img src="/icons/icon-chart-size.svg" alt="" width="18" height="18" />
                 </button>
@@ -939,7 +948,7 @@
                   min={getBarSliderMin()}
                   max={getBarSliderMax()}
                   value={getBarSliderValue()}
-                  oninput={(e) => setBarSlider(Number((e.target as HTMLInputElement).value))}
+                  oninput={(e) => { setBarSlider(Number((e.target as HTMLInputElement).value)); }}
                 />
               </div>
             {:else if isLine}
@@ -960,7 +969,7 @@
                   min={getLineSliderMin()}
                   max={getLineSliderMax()}
                   value={getLineSliderValue()}
-                  oninput={(e) => setLineSlider(Number((e.target as HTMLInputElement).value))}
+                  oninput={(e) => { setLineSlider(Number((e.target as HTMLInputElement).value)); }}
                 />
               </div>
               <!-- Marker controls -->
@@ -1003,13 +1012,14 @@
         </button>
         {#if openSection === 'title'}
           <div class="section-body">
-            <input
-              type="text"
-              value={chartTitle}
-              oninput={(e) => { chartTitle = (e.target as HTMLInputElement).value; }}
+            <textarea
+              class="title-input"
+              bind:value={chartTitle}
               placeholder="Add chart title"
-              maxlength={100}
-            />
+              maxlength={200}
+              rows="1"
+              oninput={(e) => { const t = e.target as HTMLTextAreaElement; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }}
+            ></textarea>
             <div class="text-control-row">
               <select class="font-select" bind:value={titleFont} style="font-family: '{titleFont}', sans-serif;">
                 {#each fontOptions as font}
@@ -1035,12 +1045,14 @@
               </button>
               <input
                 type="range"
-                class="style-slider"
-                min="16"
-                max="48"
+                min={titleSizeControl === 'size' ? 12 : 16}
+                max={titleSizeControl === 'size' ? 48 : 48}
                 value={getTitleSliderValue()}
-                oninput={(e) => setTitleSlider(Number((e.target as HTMLInputElement).value))}
+                oninput={(e) => { setTitleSlider(Number((e.target as HTMLInputElement).value)); }}
               />
+            </div>
+            <div class="color-row">
+              <span class="color-label">Colour</span>
               <input
                 type="color"
                 class="color-picker"
@@ -1052,7 +1064,7 @@
         {/if}
       </div>
 
-      <!-- ═══ CAPTION & SOURCE ═══ -->
+      <!-- ═══ CAPTION ═══ -->
       <div class="control-section" class:open={openSection === 'caption'}>
         <button class="section-header" onclick={() => openSection = openSection === 'caption' ? '' : 'caption'}>
           Caption & Source
@@ -1062,13 +1074,14 @@
         </button>
         {#if openSection === 'caption'}
           <div class="section-body">
-            <input
-              type="text"
-              value={chartCaption}
-              oninput={(e) => { chartCaption = (e.target as HTMLInputElement).value; }}
+            <textarea
+              class="caption-input"
+              bind:value={chartCaption}
               placeholder="Caption and Data Source"
-              maxlength={200}
-            />
+              maxlength={300}
+              rows="1"
+              oninput={(e) => { const t = e.target as HTMLTextAreaElement; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }}
+            ></textarea>
             <div class="text-control-row">
               <select class="font-select" bind:value={captionFont} style="font-family: '{captionFont}', sans-serif;">
                 {#each fontOptions as font}
@@ -1094,12 +1107,14 @@
               </button>
               <input
                 type="range"
-                class="style-slider"
-                min="12"
-                max="24"
+                min={captionSizeControl === 'size' ? 12 : 12}
+                max={captionSizeControl === 'size' ? 28 : 28}
                 value={getCaptionSliderValue()}
-                oninput={(e) => setCaptionSlider(Number((e.target as HTMLInputElement).value))}
+                oninput={(e) => { setCaptionSlider(Number((e.target as HTMLInputElement).value)); }}
               />
+            </div>
+            <div class="color-row">
+              <span class="color-label">Colour</span>
               <input
                 type="color"
                 class="color-picker"
@@ -1111,78 +1126,84 @@
         {/if}
       </div>
 
-      <!-- ═══ LEGEND / AXIS ═══ -->
-      <div class="control-section" class:open={openSection === 'legend'}>
-        <button class="section-header" onclick={() => openSection = openSection === 'legend' ? '' : 'legend'}>
-          {isBar || isLine ? 'Axis' : 'Legend'}
-          <svg class="section-chevron" width="16" height="16" viewBox="0 0 20 20" fill="none">
-            <path d="M6 8l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
-        {#if openSection === 'legend'}
-          <div class="section-body">
-            {#if isBar || isLine}
-              <!-- Axis controls -->
-              <div class="text-control-row">
-                <img src="/icons/icon-font-size.svg" alt="" width="16" height="16" class="ctrl-icon" />
-                <input
-                  type="range"
-                  class="style-slider"
-                  min="8"
-                  max="18"
-                  value={axisSize}
-                  oninput={(e) => { axisSize = Number((e.target as HTMLInputElement).value); updateChart(); }}
-                />
-                <button class="ctrl-btn" class:active={axisBold} onclick={() => { axisBold = !axisBold; updateChart(); }} title="Bold axis text">
-                  <img src="/icons/icon-bold.svg" alt="" width="16" height="16" />
-                </button>
-                <button class="ctrl-btn" onclick={() => { axisVisible = !axisVisible; updateChart(); }} title="Show/hide axis">
-                  <img src={axisVisible ? '/icons/icon-visibility.svg' : '/icons/icon-no-visibility.svg'} alt="" width="16" height="16" />
-                </button>
-                <input
-                  type="color"
-                  class="color-picker"
-                  value={axisColor}
-                  oninput={(e) => { axisColor = (e.target as HTMLInputElement).value; updateChart(); }}
-                />
+      <!-- ═══ LEGEND ═══ -->
+      {#if !isPie && isMultiSeries}
+        <div class="control-section" class:open={openSection === 'legend'}>
+          <button class="section-header" onclick={() => openSection = openSection === 'legend' ? '' : 'legend'}>
+            Legend
+            <svg class="section-chevron" width="16" height="16" viewBox="0 0 20 20" fill="none">
+              <path d="M6 8l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          {#if openSection === 'legend'}
+            <div class="section-body">
+              <div class="color-row">
+                <span class="color-label">Visible</span>
+                <input type="checkbox" checked={legendVisible} onchange={(e) => { legendVisible = (e.target as HTMLInputElement).checked; updateChart(); }} />
               </div>
-            {:else}
-              <!-- Legend controls -->
-              <div class="text-control-row">
-                <img src="/icons/icon-font-size.svg" alt="" width="16" height="16" class="ctrl-icon" />
-                <input
-                  type="range"
-                  class="style-slider"
-                  min="10"
-                  max="18"
-                  value={legendSize}
-                  oninput={(e) => { legendSize = Number((e.target as HTMLInputElement).value); updateChart(); }}
-                />
-                <button class="ctrl-btn" class:active={legendPosition === 'bottom'} onclick={() => { legendPosition = 'bottom'; updateChart(); }} title="Legend below">
-                  <img src="/icons/icon-align-bottom.svg" alt="" width="16" height="16" />
-                </button>
-                <button class="ctrl-btn" class:active={legendPosition === 'top'} onclick={() => { legendPosition = 'top'; updateChart(); }} title="Legend above">
-                  <img src="/icons/icon-align-top.svg" alt="" width="16" height="16" />
-                </button>
-                <button class="ctrl-btn" onclick={() => { legendVisible = !legendVisible; updateChart(); }} title="Show/hide legend">
-                  <img src={legendVisible ? '/icons/icon-visibility.svg' : '/icons/icon-no-visibility.svg'} alt="" width="16" height="16" />
-                </button>
-                <input
-                  type="color"
-                  class="color-picker"
-                  value={legendColor}
-                  oninput={(e) => { legendColor = (e.target as HTMLInputElement).value; updateChart(); }}
-                />
+              {#if legendVisible}
+                <div class="legend-position-row">
+                  <button class="legend-position-btn" class:active={legendPosition === 'top'} onclick={() => { legendPosition = 'top'; updateChart(); }}>
+                    <img src="/icons/icon-align-top.svg" alt="" width="16" height="16" />
+                    Top
+                  </button>
+                  <button class="legend-position-btn" class:active={legendPosition === 'bottom'} onclick={() => { legendPosition = 'bottom'; updateChart(); }}>
+                    <img src="/icons/icon-align-bottom.svg" alt="" width="16" height="16" />
+                    Bottom
+                  </button>
+                </div>
+                <div class="color-row">
+                  <span class="color-label">Size</span>
+                  <input type="range" min="10" max="16" value={legendSize} oninput={(e) => { legendSize = Number((e.target as HTMLInputElement).value); updateChart(); }} />
+                </div>
+                <div class="color-row">
+                  <span class="color-label">Colour</span>
+                  <input type="color" class="color-picker" value={legendColor} oninput={(e) => { legendColor = (e.target as HTMLInputElement).value; updateChart(); }} />
+                </div>
+              {/if}
+            </div>
+          {/if}
+        </div>
+      {/if}
+
+      <!-- ═══ AXES (Bar & Line) ═══ -->
+      {#if isBar || isLine}
+        <div class="control-section" class:open={openSection === 'axes'}>
+          <button class="section-header" onclick={() => openSection = openSection === 'axes' ? '' : 'axes'}>
+            Axes
+            <svg class="section-chevron" width="16" height="16" viewBox="0 0 20 20" fill="none">
+              <path d="M6 8l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          {#if openSection === 'axes'}
+            <div class="section-body">
+              <div class="color-row">
+                <span class="color-label">Visible</span>
+                <input type="checkbox" checked={axisVisible} onchange={(e) => { axisVisible = (e.target as HTMLInputElement).checked; updateChart(); }} />
               </div>
-            {/if}
-          </div>
-        {/if}
-      </div>
+              {#if axisVisible}
+                <div class="color-row">
+                  <span class="color-label">Size</span>
+                  <input type="range" min="10" max="16" value={axisSize} oninput={(e) => { axisSize = Number((e.target as HTMLInputElement).value); updateChart(); }} />
+                </div>
+                <div class="color-row">
+                  <button class="ctrl-btn" class:active={axisBold} onclick={() => { axisBold = !axisBold; updateChart(); }} title="Bold">
+                    <img src="/icons/icon-bold.svg" alt="" width="16" height="16" />
+                  </button>
+                  <span class="color-label">Colour</span>
+                  <input type="color" class="color-picker" value={axisColor} oninput={(e) => { axisColor = (e.target as HTMLInputElement).value; updateChart(); }} />
+                </div>
+              {/if}
+            </div>
+          {/if}
+        </div>
+      {/if}
 
       <!-- Download -->
       <div class="download-section">
         <button class="download-btn primary" onclick={downloadChart}>
-          Download PNG
+          <img src="/icons/icon-download.svg" alt="" width="18" height="18" />
+          Download
         </button>
       </div>
     </div>
@@ -1190,6 +1211,13 @@
 </div>
 
 <style>
+  :global(body.dark) {
+    --color-primary: #7c5cff;
+    --color-border: #444;
+    --text-dark: #e0e0e0;
+    --white: #1a1a1a;
+  }
+
   .editor-overlay {
     position: fixed;
     inset: 0;
@@ -1206,17 +1234,12 @@
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.08);
   }
 
-  /* Header */
   .editor-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 0.75rem 1rem;
     border-bottom: 1px solid var(--color-border);
-    position: sticky;
-    top: 0;
-    background: var(--white);
-    z-index: 10;
   }
 
   .back-btn {
@@ -1228,15 +1251,8 @@
     padding: 0;
     background: none;
     border: none;
-    border-radius: var(--radius-round);
     cursor: pointer;
     color: var(--text-dark);
-    min-height: 36px;
-    min-width: 36px;
-  }
-
-  .back-btn:hover {
-    background: var(--bg-light);
   }
 
   .type-tabs {
@@ -1245,41 +1261,36 @@
   }
 
   .type-tab {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    padding: 8px;
+    width: 36px;
+    height: 36px;
+    padding: 0;
     background: none;
     border: 1.5px solid var(--color-border);
     border-radius: var(--radius-md);
     cursor: pointer;
-    min-height: 40px;
-    min-width: 40px;
-    transition: all var(--duration-fast) ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .type-tab.active {
+    background: var(--color-primary);
     border-color: var(--color-primary);
-    background: var(--color-highlight);
   }
 
   .type-tab-icon {
-    width: 20px;
-    height: 20px;
-    filter: brightness(0) saturate(100%);
+    width: 18px;
+    height: 18px;
   }
 
   .type-tab.active .type-tab-icon {
-    filter: brightness(0) saturate(100%) invert(15%) sepia(80%) saturate(4000%) hue-rotate(260deg);
+    filter: brightness(0) invert(1);
   }
 
   .header-spacer {
-    width: 36px;
+    flex: 1;
   }
 
-  /* Chart preview */
   .chart-preview {
     margin: 0.75rem 1rem 0;
     padding: 1rem;
@@ -1290,13 +1301,25 @@
 
   .preview-title {
     margin-bottom: 0.5rem;
+    word-wrap: break-word;
+    white-space: pre-line;
+  }
+
+  .preview-caption {
+    margin-top: 0.375rem;
+    margin-bottom: 0;
+    word-wrap: break-word;
+    white-space: pre-line;
   }
 
   .canvas-container {
     position: relative;
     width: 100%;
-    height: 240px;
     overflow: hidden;
+  }
+
+  .canvas-container.pie-square {
+    aspect-ratio: 1;
   }
 
   canvas {
@@ -1304,12 +1327,6 @@
     height: 100% !important;
   }
 
-  .preview-caption {
-    margin-top: 0.375rem;
-    margin-bottom: 0;
-  }
-
-  /* Pie/Donut toggle */
   .pie-donut-toggle {
     display: flex;
     gap: 0;
@@ -1338,7 +1355,6 @@
     color: var(--white);
   }
 
-  /* Controls */
   .controls {
     padding: 0.75rem 1rem 1rem;
   }
@@ -1388,93 +1404,97 @@
   .data-rows {
     display: flex;
     flex-direction: column;
-    gap: 0.375rem;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
   }
 
   .data-row {
     display: flex;
     gap: 0.375rem;
-    align-items: center;
   }
 
-  .label-input {
-    flex: 2;
+  .label-input,
+  .value-input {
+    flex: 1;
+    padding: 0.5rem 0.625rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
     font-size: var(--font-size-sm);
-    padding: 0.5rem;
-    min-height: 38px;
+    background: var(--white);
+  }
+
+  .label-input::placeholder,
+  .value-input::placeholder {
+    color: #999999;
+    opacity: 1;
   }
 
   .value-input {
-    flex: 1;
-    font-size: var(--font-size-sm);
-    padding: 0.5rem;
-    min-height: 38px;
-    text-align: right;
-    font-variant-numeric: tabular-nums;
+    flex: 0.75;
   }
 
   .row-delete {
-    display: flex;
-    align-items: center;
-    justify-content: center;
     width: 32px;
     height: 32px;
     padding: 0;
     background: none;
-    border: none;
+    border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
     cursor: pointer;
-    opacity: 0.4;
-    min-height: 32px;
-    min-width: 32px;
-  }
-
-  .row-delete:hover { opacity: 1; }
-
-  .add-row-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
-    margin: 0.25rem auto 0;
+    flex-shrink: 0;
+  }
+
+  .add-row-btn {
+    align-self: flex-start;
     padding: 0;
     background: none;
     border: none;
-    border-radius: var(--radius-round);
     cursor: pointer;
-    color: var(--text-medium);
-    min-height: 36px;
-    min-width: 36px;
-  }
-
-  .add-row-btn:hover {
-    color: var(--color-primary);
-    background: var(--color-highlight);
-  }
-
-  .csv-divider {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    font-size: var(--font-size-xs);
-    color: var(--text-medium);
-  }
-
-  .csv-divider::before,
-  .csv-divider::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: var(--color-border);
   }
 
   .csv-input {
+    width: 100%;
+    padding: 0.625rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+    background: var(--white);
     resize: vertical;
-    min-height: 80px;
-    font-family: 'Inter', monospace;
+  }
+
+  .csv-input::placeholder {
+    color: #999999;
+    opacity: 1;
+  }
+
+  .csv-divider {
+    text-align: center;
     font-size: var(--font-size-xs);
-    line-height: var(--line-height-relaxed);
+    color: var(--text-dark);
+    margin: 0.5rem 0;
+    position: relative;
+  }
+
+  .csv-divider span {
+    background: var(--white);
+    padding: 0 0.5rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  .csv-divider::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: var(--color-border);
+    z-index: 0;
   }
 
   .apply-csv-btn {
@@ -1518,8 +1538,8 @@
   }
 
   .ctrl-btn.active {
-    border-color: var(--color-primary);
-    background: var(--color-highlight);
+    background: #555555;
+    border: none;
   }
 
   .ctrl-btn:disabled {
@@ -1534,7 +1554,7 @@
   }
 
   .ctrl-btn.active img {
-    filter: brightness(0) saturate(100%) invert(15%) sepia(80%) saturate(4000%) hue-rotate(260deg);
+    filter: brightness(0) invert(1);
   }
 
   .ctrl-icon {
@@ -1557,13 +1577,44 @@
     min-height: auto;
     padding: 0;
     border: none;
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 6px;
+    background: #e0e0e0;
+    border-radius: 3px;
+    outline: none;
+  }
+
+  .style-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    background: var(--color-primary);
+    cursor: pointer;
+    border-radius: var(--radius-round);
+  }
+
+  .style-slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    background: var(--color-primary);
+    cursor: pointer;
+    border-radius: var(--radius-round);
+    border: none;
+  }
+
+  .style-slider::-moz-range-track {
+    background: transparent;
+    border: none;
   }
 
   .color-picker {
     width: 36px;
     height: 36px;
     padding: 2px;
-    border: 1.5px solid var(--color-border);
+    border: none;
     border-radius: var(--radius-sm);
     cursor: pointer;
     background: var(--white);
@@ -1605,6 +1656,108 @@
     border-top: 1px solid var(--color-border);
   }
 
+  .bg-options {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .bg-option {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background: none;
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--duration-fast) ease;
+  }
+
+  .bg-option.active {
+    border-color: var(--color-primary);
+    background: rgba(84, 34, 176, 0.1);
+  }
+
+  .bg-circle {
+    width: 24px;
+    height: 24px;
+    border-radius: var(--radius-round);
+  }
+
+  .bg-white {
+    background: #FFFFFF;
+    border: 1px solid #e0e0e0;
+  }
+
+  .bg-transparent {
+    background: repeating-linear-gradient(
+      45deg,
+      #f0f0f0,
+      #f0f0f0 10px,
+      #ffffff 10px,
+      #ffffff 20px
+    );
+  }
+
+  .bg-rainbow {
+    background: linear-gradient(135deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff);
+  }
+
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  /* ─── Legend position row ─── */
+  .legend-position-row {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+  }
+
+  .legend-position-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--white);
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    color: var(--text-dark);
+    min-height: 36px;
+    transition: all var(--duration-fast) ease;
+  }
+
+  .legend-position-btn.active {
+    background: #555555;
+    color: var(--white);
+    border-color: #555555;
+  }
+
+  .legend-position-btn img {
+    width: 16px;
+    height: 16px;
+    filter: brightness(0) saturate(100%);
+  }
+
+  .legend-position-btn.active img {
+    filter: brightness(0) invert(1);
+  }
+
   /* ─── Text control rows (Title, Caption, Legend) ─── */
   .text-control-row {
     display: flex;
@@ -1615,12 +1768,37 @@
   .font-select {
     flex: 1;
     font-size: var(--font-size-sm);
-    padding: 0.375rem 0.5rem;
-    min-height: 36px;
+    padding: 0 1.5rem 0 0.5rem;
+    height: 36px;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
     background: var(--white);
     cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M6 8l4 4 4-4' stroke='%23888888' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.5rem center;
+    background-size: 16px 16px;
+  }
+
+  .title-input,
+  .caption-input {
+    width: 100%;
+    padding: 0.625rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--white);
+    font-size: var(--font-size-sm);
+    font-family: inherit;
+    resize: none;
+    overflow: hidden;
+    white-space: pre-line;
+  }
+
+  .title-input::placeholder,
+  .caption-input::placeholder {
+    color: #999999;
+    opacity: 1;
   }
 
   /* Download */
@@ -1630,6 +1808,14 @@
 
   .download-btn {
     width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .download-btn img {
+    filter: brightness(0) invert(1);
   }
 
   /* Slider in control rows */

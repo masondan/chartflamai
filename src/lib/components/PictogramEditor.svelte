@@ -437,9 +437,7 @@
         </svg>
       </button>
       <span class="editor-title">Pictogram</span>
-      <button class="back-btn" onclick={downloadPictogram} aria-label="Download" title="Download PNG">
-        <img src="/icons/icon-share.svg" alt="" width="18" height="18" />
-      </button>
+      <div class="header-spacer"></div>
     </div>
 
     <!-- Canvas preview -->
@@ -730,7 +728,8 @@
       <!-- Download -->
       <div class="download-section">
         <button class="download-btn primary" onclick={downloadPictogram}>
-          Download PNG
+          <img src="/icons/icon-download.svg" alt="" width="18" height="18" />
+          Download
         </button>
       </div>
 
@@ -835,6 +834,10 @@
     color: var(--text-dark);
   }
 
+  .header-spacer {
+    width: 36px;
+  }
+
   /* Chart preview */
   .chart-preview {
     margin: 0.75rem 1rem 0;
@@ -934,10 +937,40 @@
 
   .style-slider {
     flex: 1;
-    min-width: 0;
     accent-color: var(--color-primary);
     min-height: auto;
     padding: 0;
+    border: none;
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 6px;
+    background: #e0e0e0;
+    border-radius: 3px;
+    outline: none;
+  }
+
+  .style-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    background: var(--color-primary);
+    cursor: pointer;
+    border-radius: var(--radius-round);
+  }
+
+  .style-slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    background: var(--color-primary);
+    cursor: pointer;
+    border-radius: var(--radius-round);
+    border: none;
+  }
+
+  .style-slider::-moz-range-track {
+    background: transparent;
     border: none;
   }
 
@@ -953,6 +986,11 @@
     -moz-appearance: textfield;
     min-height: 44px;
     min-width: 44px;
+  }
+
+  .pictogram-input-box::placeholder {
+    color: #999999;
+    opacity: 1;
   }
 
   .pictogram-input-box::-webkit-inner-spin-button,
@@ -971,21 +1009,35 @@
     padding: 0;
     background: none;
     border: 1.5px solid var(--color-border);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-md);
     cursor: pointer;
-    color: var(--text-medium);
     min-height: 36px;
     min-width: 36px;
     transition: all var(--duration-fast) ease;
   }
 
-  .ctrl-btn.active {
+  .ctrl-btn:hover:not(:disabled) {
     border-color: var(--color-primary);
-    background: var(--color-highlight);
   }
 
-  .ctrl-btn:hover:not(.active) {
-    background: var(--bg-light);
+  .ctrl-btn.active {
+    background: #555555;
+    border: none;
+  }
+
+  .ctrl-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  .ctrl-btn img {
+    width: 16px;
+    height: 16px;
+    filter: brightness(0) saturate(100%);
+  }
+
+  .ctrl-btn.active img {
+    filter: brightness(0) invert(1);
   }
 
   .icon-preview-btn {
@@ -1034,6 +1086,19 @@
     gap: var(--spacing-sm);
   }
 
+  .color-pair .color-picker {
+    width: 36px;
+    height: 36px;
+    padding: 2px;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    background: var(--white);
+    min-height: 36px;
+    min-width: 36px;
+    flex-shrink: 0;
+  }
+
   /* Text controls — matches ChartEditor */
   .text-control-row {
     display: flex;
@@ -1045,11 +1110,18 @@
   .font-select {
     flex: 1;
     min-width: 0;
-    padding: 0.375rem 0.5rem;
+    padding: 0 1.5rem 0 0.5rem;
+    height: 36px;
     border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-md);
     font-size: var(--font-size-sm);
     background: var(--white);
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M6 8l4 4 4-4' stroke='%23888888' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.5rem center;
+    background-size: 16px 16px;
   }
 
   /* Icon drawer */
@@ -1203,6 +1275,14 @@
 
   .download-btn {
     width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .download-btn img {
+    filter: brightness(0) invert(1);
   }
 
   /* Slider in text control rows */
@@ -1212,5 +1292,12 @@
     min-height: auto;
     padding: 0;
     border: none;
+  }
+
+  .ctrl-icon {
+    width: 16px;
+    height: 16px;
+    filter: brightness(0) saturate(100%);
+    flex-shrink: 0;
   }
 </style>
