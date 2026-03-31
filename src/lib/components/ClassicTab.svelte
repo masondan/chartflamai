@@ -2,6 +2,7 @@
   import ChartDisplay from './ChartDisplay.svelte';
   import ChartTypeBar from './ChartTypeBar.svelte';
   import ChartEditor from './ChartEditor.svelte';
+  import PictogramEditor from './PictogramEditor.svelte';
   import type { ChartType } from '$lib/config/design';
   import type { AngleData } from '$lib/stores/aiState.svelte';
   import { DESIGN_TOKENS } from '$lib/config/design';
@@ -16,6 +17,9 @@
   let editorOpen = $state(false);
   let editorChartType = $state<ChartType>('bar');
   let editorCsvData = $state('');
+
+  // Pictogram editor state
+  let pictogramOpen = $state(false);
 
   const chartStarters: Array<{ type: ChartType; label: string; icon: string }> = [
     { type: 'pie', label: 'Pie', icon: '/icons/icon-pie-chart.svg' },
@@ -111,7 +115,7 @@
 
   function handleStartWithChart(starter: typeof chartStarters[number]) {
     if (starter.label === 'Pictogram') {
-      // Pictogram: coming soon
+      pictogramOpen = true;
       return;
     }
     openEditor(starter.type);
@@ -192,14 +196,10 @@
       {#each chartStarters as starter}
         <button
           class="starter-btn"
-          class:coming-soon={starter.label === 'Pictogram'}
           onclick={() => handleStartWithChart(starter)}
           title={starter.label}
         >
           <img src={starter.icon} alt={starter.label} class="starter-icon" />
-          {#if starter.label === 'Pictogram'}
-            <span class="soon-badge">Soon</span>
-          {/if}
         </button>
       {/each}
     </div>
@@ -213,6 +213,11 @@
     initialCsv={editorCsvData}
     onclose={closeEditor}
   />
+{/if}
+
+<!-- Full-page pictogram editor -->
+{#if pictogramOpen}
+  <PictogramEditor onclose={() => pictogramOpen = false} />
 {/if}
 
 <style>
@@ -377,31 +382,15 @@
     min-width: auto;
   }
 
-  .starter-btn:hover:not(.coming-soon) {
+  .starter-btn:hover {
     background: var(--color-highlight);
     box-shadow: var(--shadow-md);
-  }
-
-  .starter-btn.coming-soon {
-    opacity: 0.4;
-    cursor: not-allowed;
   }
 
   .starter-icon {
     width: 32px;
     height: 32px;
     filter: brightness(0) saturate(100%) invert(15%) sepia(80%) saturate(4000%) hue-rotate(260deg);
-  }
-
-  .soon-badge {
-    position: absolute;
-    bottom: 4px;
-    right: 4px;
-    font-size: 0.6rem;
-    color: var(--text-medium);
-    background: var(--bg-light);
-    padding: 1px 4px;
-    border-radius: var(--radius-sm);
   }
 
   .error-card { border-color: var(--color-error); text-align: center; }

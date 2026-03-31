@@ -756,13 +756,15 @@
                 <button class="bg-option" class:active={bgColor === 'transparent'} onclick={() => { bgColor = 'transparent'; updateChart(); }} aria-label="Transparent background">
                   <span class="bg-circle bg-transparent"></span>
                 </button>
-                <input
-                  type="color"
-                  class="bg-custom-picker"
-                  value={bgColor === 'white' || bgColor === 'transparent' ? '#FFFFFF' : bgColor}
-                  oninput={(e) => { bgColor = (e.target as HTMLInputElement).value; updateChart(); }}
-                  title="Custom background"
-                />
+                <label class="bg-option" class:active={bgColor !== 'white' && bgColor !== 'transparent'} title="Custom background">
+                  <span class="bg-circle bg-rainbow"></span>
+                  <input
+                    type="color"
+                    class="visually-hidden"
+                    value={bgColor === 'white' || bgColor === 'transparent' ? '#FFFFFF' : bgColor}
+                    oninput={(e) => { bgColor = (e.target as HTMLInputElement).value; updateChart(); }}
+                  />
+                </label>
               </div>
             </div>
           </div>
@@ -1162,7 +1164,11 @@
 
   /* Chart preview */
   .chart-preview {
+    margin: 0.75rem 1rem 0;
     padding: 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
   }
 
   .preview-title {
@@ -1173,11 +1179,7 @@
     position: relative;
     width: 100%;
     height: 240px;
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
     overflow: hidden;
-    padding: 0.5rem;
-    background: var(--white);
   }
 
   canvas {
@@ -1461,73 +1463,10 @@
     white-space: nowrap;
   }
 
-  .color-picker {
-    width: 32px;
-    height: 32px;
-    padding: 2px;
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    min-height: 32px;
-    min-width: 32px;
-    flex-shrink: 0;
-  }
-
   .bg-row {
     margin-top: 0.5rem;
     padding-top: 0.75rem;
     border-top: 1px solid var(--color-border);
-  }
-
-  .bg-options {
-    display: flex;
-    gap: 0.375rem;
-    align-items: center;
-  }
-
-  .bg-option {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    padding: 0;
-    background: none;
-    border: 2px solid var(--color-border);
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    min-height: 32px;
-    min-width: 32px;
-  }
-
-  .bg-option.active {
-    border-color: var(--color-primary);
-  }
-
-  .bg-circle {
-    width: 20px;
-    height: 20px;
-    border-radius: var(--radius-round);
-  }
-
-  .bg-white {
-    background: #FFFFFF;
-    border: 1px solid var(--color-border);
-  }
-
-  .bg-transparent {
-    background: repeating-conic-gradient(#e0e0e0 0% 25%, transparent 0% 50%) 50% / 10px 10px;
-  }
-
-  .bg-custom-picker {
-    width: 32px;
-    height: 32px;
-    padding: 2px;
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    min-height: 32px;
-    min-width: 32px;
   }
 
   /* ─── Text control rows (Title, Caption, Legend) ─── */
