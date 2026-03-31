@@ -11,7 +11,7 @@ interface UiState {
 
 function createUiState() {
   let state = $state<UiState>({
-    activeTab: 'search',
+    activeTab: 'classic',
     isLoading: false,
     showSourcePreview: false,
     previewText: '',

@@ -12,9 +12,9 @@
   import type { ChartType } from '$lib/config/design';
 
   const tabs = [
+    { id: 'classic' as const, label: 'Classic', ai: false },
     { id: 'search' as const, label: 'Search', ai: true },
-    { id: 'source' as const, label: 'Source', ai: true },
-    { id: 'classic' as const, label: 'Classic', ai: false }
+    { id: 'source' as const, label: 'Source', ai: true }
   ];
 
   // Per-tab results cache so switching tabs doesn't lose work
