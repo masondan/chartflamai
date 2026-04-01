@@ -11,7 +11,7 @@
   let progressMessage = $state('');
   let buttonMessage = $state('Find Stories');
   let messageInterval: ReturnType<typeof setInterval> | null = null;
-  const loadingMessages = ['Digging for data', 'Selecting angles', 'Checking'];
+  const loadingMessages = ['Analysing data', 'Finding angles', 'Fact checking'];
 
   let urlInput = $state('');
   let fileName = $state('');
@@ -393,7 +393,7 @@
         </label>
 
         <label class="suggest-toggle">
-          <span>Or ... suggest three angles</span>
+          <span>Or ... suggest three stories</span>
           <input type="checkbox" bind:checked={suggestAngles} />
         </label>
 

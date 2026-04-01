@@ -9,7 +9,7 @@
   let progressMessage = $state('');
   let buttonMessage = $state('Find Stories');
   let messageInterval: ReturnType<typeof setInterval> | null = null;
-  const loadingMessages = ['Digging for data', 'Selecting angles', 'Checking'];
+  const loadingMessages = ['Analysing data', 'Finding angles', 'Fact checking'];
 
   const chartTypeOptions = [
     { id: 'any', label: 'Any' },
