@@ -23,6 +23,7 @@
 
   let summaryText = $state('');
   let summaryLoading = $state(false);
+  let summaryPreparing = $state(false);
   let summaryError = $state('');
   let fileError = $state('');
   let isDragOver = $state(false);
@@ -53,9 +54,7 @@
     aiState.value.sourceFile = file;
     aiState.value.sourceType = 'pdf';
 
-    sourceOpen = false;
-    summaryOpen = true;
-    summaryLoading = true;
+    summaryPreparing = true;
     summaryText = '';
 
     try {
@@ -76,12 +75,14 @@
 
       const data = await res.json();
       summaryText = data.summary || 'No summary available.';
+      sourceOpen = false;
+      summaryOpen = true;
       explorerOpen = true;
     } catch (err) {
       summaryError = err instanceof Error ? err.message : 'Failed to extract and summarise document.';
       summaryText = '';
     } finally {
-      summaryLoading = false;
+      summaryPreparing = false;
     }
   }
 
@@ -92,9 +93,14 @@
     aiState.value.extractedText = urlInput.trim();
     summaryText = `URL source: ${urlInput.trim()}. Content will be fetched and analysed when you tap "Chart it".`;
 
-    sourceOpen = false;
-    summaryOpen = true;
-    explorerOpen = true;
+    summaryPreparing = true;
+    // Simulate brief preparation time then open summary
+    setTimeout(() => {
+      summaryPreparing = false;
+      sourceOpen = false;
+      summaryOpen = true;
+      explorerOpen = true;
+    }, 600);
   }
 
   function handleDragOver(e: DragEvent) {
@@ -210,16 +216,22 @@
 
 <div class="source-tab">
   <!-- Add a source -->
-  <div class="section-card card" class:collapsed={!sourceOpen}>
-    <button class="accordion-header" class:open={sourceOpen} onclick={() => sourceOpen = !sourceOpen} aria-expanded={sourceOpen}>
+  <div class="section-card card" class:collapsed={!sourceOpen} class:fading={summaryPreparing}>
+    <button class="accordion-header" class:open={sourceOpen} onclick={() => !summaryPreparing && (sourceOpen = !sourceOpen)} aria-expanded={sourceOpen} disabled={summaryPreparing}>
       <span class="accordion-title">Add a source</span>
       <svg class="chevron" width="20" height="20" viewBox="0 0 20 20" fill="none">
         <path d="M6 8l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     </button>
     {#if sourceOpen}
-      <div class="section-body">
-        <label class="upload-zone" class:drag-over={isDragOver} ondragover={handleDragOver} ondragleave={handleDragLeave} ondrop={handleDrop}>
+      <div class="section-body" class:preparing={summaryPreparing}>
+        {#if summaryPreparing}
+          <div class="preparing-overlay">
+            <span class="spinner"></span>
+            <span class="preparing-text">Preparing summary</span>
+          </div>
+        {/if}
+         <label class="upload-zone" class:drag-over={isDragOver} ondragover={handleDragOver} ondragleave={handleDragLeave} ondrop={handleDrop}>
           <input type="file" accept=".pdf,.docx" onchange={handleFileChange} class="visually-hidden" bind:this={fileInput} />
           <img src="/icons/icon-upload.svg" alt="" width="32" height="32" class="upload-icon" />
           <span class="upload-label">Upload PDF/DOCX</span>
@@ -247,33 +259,31 @@
   </div>
 
   <!-- Source summary -->
-  {#if hasSource || summaryLoading}
-    <div class="section-card card" class:collapsed={!summaryOpen}>
-      <button class="accordion-header" class:open={summaryOpen} onclick={() => summaryOpen = !summaryOpen} aria-expanded={summaryOpen}>
-        <span class="accordion-title">Source summary</span>
-        <svg class="chevron" width="20" height="20" viewBox="0 0 20 20" fill="none">
-          <path d="M6 8l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-      {#if summaryOpen}
-        <div class="section-body">
-          {#if summaryLoading}
-            <div class="summary-loading">
-              <span class="spinner"></span>
-              <span>Extracting and summarising document…</span>
-            </div>
-          {:else if summaryError}
-            <p class="summary-error">{summaryError}</p>
-          {:else if summaryText}
-            <p class="summary-text">{summaryText}</p>
-          {/if}
-        </div>
-      {/if}
-    </div>
-  {/if}
+  <div class="section-card card" class:collapsed={!summaryOpen} class:disabled-card={!hasSource} class:opening={summaryOpen && hasSource}>
+    <button class="accordion-header" class:open={summaryOpen} onclick={() => hasSource && (summaryOpen = !summaryOpen)} aria-expanded={summaryOpen} disabled={!hasSource}>
+      <span class="accordion-title">Source summary</span>
+      <svg class="chevron" width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <path d="M6 8l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    {#if summaryOpen && hasSource}
+      <div class="section-body">
+        {#if summaryLoading}
+          <div class="summary-loading">
+            <span class="spinner"></span>
+            <span>Extracting and summarising document…</span>
+          </div>
+        {:else if summaryError}
+          <p class="summary-error">{summaryError}</p>
+        {:else if summaryText}
+          <p class="summary-text">{summaryText}</p>
+        {/if}
+      </div>
+    {/if}
+  </div>
 
   <!-- Data explorer -->
-  <div class="section-card card" class:active-border={explorerOpen} class:disabled-card={!hasSource}>
+  <div class="section-card card" class:active-border={explorerOpen} class:collapsed={!explorerOpen} class:disabled-card={!hasSource}>
     <button class="accordion-header" class:open={explorerOpen} onclick={() => hasSource && (explorerOpen = !explorerOpen)} aria-expanded={explorerOpen} disabled={!hasSource}>
       <span class="accordion-title">Data explorer</span>
       <svg class="chevron" width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -366,6 +376,15 @@
 
   .section-card {
     padding: 0;
+    transition: opacity var(--duration-normal) ease;
+  }
+
+  .section-card.fading {
+    opacity: 0.5;
+  }
+
+  .section-card.opening {
+    animation: fadeIn var(--duration-normal) ease-out;
   }
 
   .section-card.disabled-card {
@@ -374,7 +393,7 @@
   }
 
   .section-card.collapsed {
-    border-color: var(--color-border);
+    border-color: #999999;
   }
 
   .section-card.active-border {
@@ -413,6 +432,37 @@
     flex-direction: column;
     gap: 1rem;
     padding: 0 var(--spacing-lg) var(--spacing-lg);
+    position: relative;
+  }
+
+  .section-body.preparing {
+    pointer-events: none;
+  }
+
+  .section-body.preparing > :not(.preparing-overlay) {
+    opacity: 0.3;
+  }
+
+  .preparing-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    z-index: 10;
+  }
+
+  .preparing-overlay .spinner {
+    width: 48px;
+    height: 48px;
+  }
+
+  .preparing-text {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: #7c3aed;
   }
 
   .upload-zone {
@@ -649,4 +699,5 @@
   .skeleton-line.narrow { width: 50%; }
 
   @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 </style>
