@@ -586,7 +586,7 @@
 
       const link = document.createElement('a');
       const timestamp = new Date().toISOString().slice(0, 10);
-      link.download = `chartflamai-${activeType}-${timestamp}.png`;
+      link.download = `chartflam-${activeType}-${timestamp}.png`;
       link.href = tempCanvas.toDataURL('image/png');
       link.click();
     };

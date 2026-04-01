@@ -58,7 +58,7 @@
 
     const link = document.createElement('a');
     link.href = chart.thumbnail;
-    link.download = `chartflamai-${chart.editorType}-${new Date().toISOString().slice(0, 10)}.png`;
+    link.download = `chartflam-${chart.editorType}-${new Date().toISOString().slice(0, 10)}.png`;
     link.click();
   }
 

@@ -1,8 +1,8 @@
 import { browser } from '$app/environment';
 import type { AngleData } from './aiState.svelte';
 
-const STORAGE_KEY_CHARTS = 'chartflamai-archive-charts';
-const STORAGE_KEY_STORIES = 'chartflamai-archive-stories';
+const STORAGE_KEY_CHARTS = 'chartflam-archive-charts';
+const STORAGE_KEY_STORIES = 'chartflam-archive-stories';
 const MAX_CHARTS = 10;
 const MAX_STORIES = 10;
 const EXPIRY_DAYS = 30;

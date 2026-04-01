@@ -20,7 +20,7 @@ export const POST: RequestHandler = async ({ request }) => {
     // Fetch the URL
     const res = await fetch(url.toString(), {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; ChartFlamAI/1.0)'
+        'User-Agent': 'Mozilla/5.0 (compatible; ChartFlam/1.0)'
       }
     });
 

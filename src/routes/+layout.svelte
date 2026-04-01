@@ -24,7 +24,7 @@
       </svg>
     </button>
     <a href="/" class="logo-link">
-      <img src="/logos/logo-chartflam-ai-logotype.png" alt="ChartFlamAI" class="logo" />
+      <img src="/logos/logo-chartflam-logotype.png" alt="ChartFlam" class="logo" />
     </a>
     <button class="header-btn bookmark-btn" aria-label="Saved" onclick={() => savedChartsOpen = true}>
       <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
