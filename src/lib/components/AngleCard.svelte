@@ -9,9 +9,10 @@
 
   interface Props {
     angle: AngleData;
+    storyNumber?: number;
   }
 
-  let { angle }: Props = $props();
+  let { angle, storyNumber = 1 }: Props = $props();
 
   let isExpanded = $derived(uiState.value.expandedAngleId === angle.id);
   let currentChartType = $derived(
@@ -41,7 +42,10 @@
     onclick={() => uiState.toggleAngle(angle.id)}
     aria-expanded={isExpanded}
   >
-    <span class="angle-headline">{angle.headline}</span>
+    <div class="angle-header-content">
+      <span class="story-label">Story {storyNumber}</span>
+      <span class="angle-headline">{angle.headline}</span>
+    </div>
     <svg class="chevron" width="20" height="20" viewBox="0 0 20 20" fill="none">
       <path d="M6 8l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
@@ -115,6 +119,19 @@
     text-align: left;
     cursor: pointer;
     min-height: 44px;
+  }
+
+  .angle-header-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    flex: 1;
+  }
+
+  .story-label {
+    font-weight: var(--font-weight-bold);
+    font-size: var(--font-size-base);
+    color: var(--color-primary);
   }
 
   .angle-headline {

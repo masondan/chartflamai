@@ -178,9 +178,9 @@
   {/if}
 
   {#if aiState.value.step === 'results' && aiState.value.apiResponse}
-    {#each aiState.value.apiResponse.angles as angle}
+    {#each aiState.value.apiResponse.angles as angle, index}
       {#await import('./AngleCard.svelte') then module}
-        <module.default {angle} />
+        <module.default {angle} storyNumber={index + 1} />
       {/await}
     {/each}
   {/if}
