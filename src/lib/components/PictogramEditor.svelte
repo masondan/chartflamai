@@ -52,6 +52,7 @@
   // ─── Refs ───
   let canvasEl: HTMLCanvasElement;
   let drawerContentEl: HTMLDivElement;
+  let renderGeneration = 0;
 
   let currentArchiveId = $state<string | undefined>(initArchiveId);
 
@@ -71,6 +72,31 @@
     return current === 'left' ? 'center' : current === 'center' ? 'right' : 'left';
   }
 
+  // ─── Layout helper ───
+  function getIconAspectRatio(svgString: string): number {
+    if (!browser || !svgString) return 1;
+    const match = svgString.match(/viewBox=["']([^"']+)["']/);
+    if (!match) return 1;
+    const parts = match[1].split(/\s+/).map(Number);
+    if (parts.length < 4 || parts[2] === 0) return 1;
+    return parts[3] / parts[2]; // height / width
+  }
+
+  function calculatePictogramLayout(targetWidth: number, svgString: string, hSpace: number, vSpace: number) {
+    const iconsPerRow = 5;
+    const totalIcons = 10;
+    const rows = 2;
+    const padding = Math.round(40 * (targetWidth / 1080));
+    const hSpacing = hSpace - 50;
+    const vSpacing = vSpace - 50;
+    const availableWidth = targetWidth - (padding * 2);
+    const iconWidth = (availableWidth - (hSpacing * (iconsPerRow - 1))) / iconsPerRow;
+    const aspect = getIconAspectRatio(svgString);
+    const iconHeight = iconWidth * aspect;
+    const canvasHeight = (rows * iconHeight) + ((rows - 1) * vSpacing) + (padding * 2);
+    return { iconsPerRow, totalIcons, rows, padding, hSpacing, vSpacing, iconWidth, iconHeight, canvasHeight };
+  }
+
   // ─── SVG helpers ───
   function sanitizeSvg(svgString: string): string {
     if (!browser) return svgString;
@@ -86,6 +112,31 @@
     return svg.outerHTML;
   }
 
+  const imageCache = new Map<string, HTMLImageElement>();
+
+  function decodeSvgImage(svgString: string, color: string): Promise<HTMLImageElement> {
+    const key = `${svgString}::${color}`;
+    const cached = imageCache.get(key);
+    if (cached) return Promise.resolve(cached);
+
+    return new Promise((resolve, reject) => {
+      const coloredSvg = svgString.replace(/currentColor/g, color);
+      const img = new Image();
+      const blob = new Blob([coloredSvg], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        imageCache.set(key, img);
+        resolve(img);
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject();
+      };
+      img.src = url;
+    });
+  }
+
   function renderSvgToCanvas(
     ctx: CanvasRenderingContext2D,
     svgString: string,
@@ -93,21 +144,8 @@
     width: number, height: number,
     color: string
   ): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const coloredSvg = svgString.replace(/currentColor/g, color);
-      const img = new Image();
-      const blob = new Blob([coloredSvg], { type: 'image/svg+xml' });
-      const url = URL.createObjectURL(blob);
-      img.onload = () => {
-        ctx.drawImage(img, x, y, width, height);
-        URL.revokeObjectURL(url);
-        resolve();
-      };
-      img.onerror = () => {
-        URL.revokeObjectURL(url);
-        reject();
-      };
-      img.src = url;
+    return decodeSvgImage(svgString, color).then(img => {
+      ctx.drawImage(img, x, y, width, height);
     });
   }
 
@@ -130,6 +168,7 @@
   function selectIcon(icon: PictogramIcon) {
     currentIconName = icon.name;
     currentIconSvg = sanitizeSvg(icon.svg);
+    imageCache.clear();
     iconDrawerOpen = false;
   }
 
@@ -147,52 +186,59 @@
     const ctx = canvasEl.getContext('2d');
     if (!ctx) return;
 
+    const generation = ++renderGeneration;
+
+    // Pre-decode both icon images (cache hit = instant)
+    const [filledImg, unfilledImg] = await Promise.all([
+      decodeSvgImage(currentIconSvg, pictogramFilledColor),
+      decodeSvgImage(currentIconSvg, pictogramUnfilledColor)
+    ]);
+
+    // Bail if a newer render started while we were decoding
+    if (generation !== renderGeneration) return;
+
     const container = canvasEl.parentElement;
     if (!container) return;
     const width = container.clientWidth;
-    canvasEl.width = width;
 
-    const iconsPerRow = 5;
-    const totalIcons = 10;
-    const rows = 2;
-    const hSpacing = horizontalSpacing - 50;
-    const vSpacing = verticalSpacing - 50;
-    const padding = 20;
-    const availableWidth = width - (padding * 2);
-    const iconWidth = (availableWidth - (hSpacing * (iconsPerRow - 1))) / iconsPerRow;
-    const iconHeight = iconWidth;
-    const canvasHeight = (rows * iconHeight) + ((rows - 1) * vSpacing) + (padding * 2);
-    canvasEl.height = canvasHeight;
-    ctx.clearRect(0, 0, width, canvasHeight);
+    const layout = calculatePictogramLayout(width, currentIconSvg, horizontalSpacing, verticalSpacing);
+    const dpr = window.devicePixelRatio || 1;
+    canvasEl.width = width * dpr;
+    canvasEl.height = layout.canvasHeight * dpr;
+    canvasEl.style.width = `${width}px`;
+    canvasEl.style.height = `${layout.canvasHeight}px`;
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, width, layout.canvasHeight);
 
     const filled = pictogramFilled;
     const fullIcons = Math.floor(filled);
     const partialAmount = filled % 1;
 
-    for (let i = 0; i < totalIcons; i++) {
-      const row = Math.floor(i / iconsPerRow);
-      const col = i % iconsPerRow;
-      const x = padding + (col * (iconWidth + hSpacing));
-      const y = padding + (row * (iconHeight + vSpacing));
+    // Synchronous draw loop — no awaits, no flicker
+    for (let i = 0; i < layout.totalIcons; i++) {
+      const row = Math.floor(i / layout.iconsPerRow);
+      const col = i % layout.iconsPerRow;
+      const x = layout.padding + (col * (layout.iconWidth + layout.hSpacing));
+      const y = layout.padding + (row * (layout.iconHeight + layout.vSpacing));
 
       if (i < fullIcons) {
-        await renderSvgToCanvas(ctx, currentIconSvg, x, y, iconWidth, iconHeight, pictogramFilledColor);
+        ctx.drawImage(filledImg, x, y, layout.iconWidth, layout.iconHeight);
       } else if (i === fullIcons && partialAmount > 0) {
         ctx.save();
         ctx.beginPath();
-        ctx.rect(x, y, iconWidth * partialAmount, iconHeight);
+        ctx.rect(x, y, layout.iconWidth * partialAmount, layout.iconHeight);
         ctx.clip();
-        await renderSvgToCanvas(ctx, currentIconSvg, x, y, iconWidth, iconHeight, pictogramFilledColor);
+        ctx.drawImage(filledImg, x, y, layout.iconWidth, layout.iconHeight);
         ctx.restore();
 
         ctx.save();
         ctx.beginPath();
-        ctx.rect(x + (iconWidth * partialAmount), y, iconWidth * (1 - partialAmount), iconHeight);
+        ctx.rect(x + (layout.iconWidth * partialAmount), y, layout.iconWidth * (1 - partialAmount), layout.iconHeight);
         ctx.clip();
-        await renderSvgToCanvas(ctx, currentIconSvg, x, y, iconWidth, iconHeight, pictogramUnfilledColor);
+        ctx.drawImage(unfilledImg, x, y, layout.iconWidth, layout.iconHeight);
         ctx.restore();
       } else {
-        await renderSvgToCanvas(ctx, currentIconSvg, x, y, iconWidth, iconHeight, pictogramUnfilledColor);
+        ctx.drawImage(unfilledImg, x, y, layout.iconWidth, layout.iconHeight);
       }
     }
   }
@@ -200,20 +246,11 @@
   // ─── Download ───
   async function downloadPictogram() {
     const exportWidth = 1080;
-    const iconsPerRow = 5;
-    const totalIcons = 10;
-    const rows = 2;
-    const hSpacing = horizontalSpacing - 50;
-    const vSpacing = verticalSpacing - 50;
-    const padding = 40;
-    const availableWidth = exportWidth - (padding * 2);
-    const iconWidth = (availableWidth - (hSpacing * (iconsPerRow - 1))) / iconsPerRow;
-    const iconHeight = iconWidth;
-    const canvasHeight = (rows * iconHeight) + ((rows - 1) * vSpacing) + (padding * 2);
+    const layout = calculatePictogramLayout(exportWidth, currentIconSvg, horizontalSpacing, verticalSpacing);
 
     let totalHeight = 120;
     if (chartTitle) totalHeight += 80;
-    totalHeight += canvasHeight;
+    totalHeight += layout.canvasHeight;
     if (chartCaption) totalHeight += 80;
     totalHeight += 60;
 
@@ -234,7 +271,7 @@
       const exportTitleSize = Math.round(titleSize * (exportWidth / 480));
       ctx.font = `${titleBold ? 'bold' : 'normal'} ${titleItalic ? 'italic' : 'normal'} ${exportTitleSize}px ${titleFont}, sans-serif`;
       ctx.textAlign = titleAlign;
-      const titleX = titleAlign === 'left' ? 40 : (titleAlign === 'right' ? exportWidth - 40 : exportWidth / 2);
+      const titleX = titleAlign === 'left' ? layout.padding : (titleAlign === 'right' ? exportWidth - layout.padding : exportWidth / 2);
       ctx.fillText(chartTitle, titleX, yOffset);
       yOffset += 80;
     }
@@ -243,39 +280,39 @@
     const fullIcons = Math.floor(filled);
     const partialAmount = filled % 1;
 
-    for (let i = 0; i < totalIcons; i++) {
-      const row = Math.floor(i / iconsPerRow);
-      const col = i % iconsPerRow;
-      const x = padding + (col * (iconWidth + hSpacing));
-      const y = yOffset + padding + (row * (iconHeight + vSpacing));
+    for (let i = 0; i < layout.totalIcons; i++) {
+      const row = Math.floor(i / layout.iconsPerRow);
+      const col = i % layout.iconsPerRow;
+      const x = layout.padding + (col * (layout.iconWidth + layout.hSpacing));
+      const y = yOffset + layout.padding + (row * (layout.iconHeight + layout.vSpacing));
 
       if (i < fullIcons) {
-        await renderSvgToCanvas(ctx, currentIconSvg, x, y, iconWidth, iconHeight, pictogramFilledColor);
+        await renderSvgToCanvas(ctx, currentIconSvg, x, y, layout.iconWidth, layout.iconHeight, pictogramFilledColor);
       } else if (i === fullIcons && partialAmount > 0) {
         ctx.save();
         ctx.beginPath();
-        ctx.rect(x, y, iconWidth * partialAmount, iconHeight);
+        ctx.rect(x, y, layout.iconWidth * partialAmount, layout.iconHeight);
         ctx.clip();
-        await renderSvgToCanvas(ctx, currentIconSvg, x, y, iconWidth, iconHeight, pictogramFilledColor);
+        await renderSvgToCanvas(ctx, currentIconSvg, x, y, layout.iconWidth, layout.iconHeight, pictogramFilledColor);
         ctx.restore();
         ctx.save();
         ctx.beginPath();
-        ctx.rect(x + (iconWidth * partialAmount), y, iconWidth * (1 - partialAmount), iconHeight);
+        ctx.rect(x + (layout.iconWidth * partialAmount), y, layout.iconWidth * (1 - partialAmount), layout.iconHeight);
         ctx.clip();
-        await renderSvgToCanvas(ctx, currentIconSvg, x, y, iconWidth, iconHeight, pictogramUnfilledColor);
+        await renderSvgToCanvas(ctx, currentIconSvg, x, y, layout.iconWidth, layout.iconHeight, pictogramUnfilledColor);
         ctx.restore();
       } else {
-        await renderSvgToCanvas(ctx, currentIconSvg, x, y, iconWidth, iconHeight, pictogramUnfilledColor);
+        await renderSvgToCanvas(ctx, currentIconSvg, x, y, layout.iconWidth, layout.iconHeight, pictogramUnfilledColor);
       }
     }
 
     if (chartCaption) {
-      const captionY = yOffset + canvasHeight + 40;
+      const captionY = yOffset + layout.canvasHeight + 40;
       ctx.fillStyle = captionColor;
       const exportCaptionSize = Math.round(captionSize * (exportWidth / 480));
       ctx.font = `${captionBold ? 'bold' : 'normal'} ${captionItalic ? 'italic' : 'normal'} ${exportCaptionSize}px ${captionFont}, sans-serif`;
       ctx.textAlign = captionAlign;
-      const captionX = captionAlign === 'left' ? 40 : (captionAlign === 'right' ? exportWidth - 40 : exportWidth / 2);
+      const captionX = captionAlign === 'left' ? layout.padding : (captionAlign === 'right' ? exportWidth - layout.padding : exportWidth / 2);
       ctx.fillText(chartCaption, captionX, captionY);
     }
 

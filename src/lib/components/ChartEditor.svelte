@@ -38,8 +38,11 @@
 
   // ─── Colour state ───
   const defaultColors = [...DESIGN_TOKENS.chartColors];
+  const defaultBarColor = '#5422b0';
   let sliceColors = $state<string[]>([...defaultColors]);
   let barSeriesColors = $state<string[]>(['#5422b0', '#AB0000', '#004269']);
+  let baseBarColor = $state<string>(defaultBarColor);
+  let barBarColors = $state<Record<number, string | null>>({});
   let lineColors = $state<string[]>(['#5422b0', '#AB0000']);
   let markerColors = $state<string[]>(['#5422b0', '#AB0000']);
   let bgColor = $state<'white' | 'transparent' | string>('white');
@@ -189,10 +192,13 @@
         ds.pointBorderColor = markerColors[i % markerColors.length];
         ds.pointStyle = markerStyle;
       } else {
-        // Bar
-        const color = barSeriesColors[i % barSeriesColors.length];
-        ds.backgroundColor = color;
-        ds.borderColor = color;
+        // Bar: apply per-bar colors or base color
+        ds.backgroundColor = vals.map((_: number, labelIdx: number) => 
+          barBarColors[labelIdx] || baseBarColor
+        );
+        ds.borderColor = vals.map((_: number, labelIdx: number) => 
+          barBarColors[labelIdx] || baseBarColor
+        );
         ds.borderWidth = 0;
         ds.borderRadius = barRounding;
         ds.categoryPercentage = barSpacing / 100;
@@ -838,15 +844,43 @@
                 </div>
               {/each}
             {:else if isBar}
-              <!-- Bar: per-series base color -->
-              {#each values as _, si}
-                <div class="color-row">
-                  <span class="color-label">{seriesNames[si] || `Series ${si + 1}`}</span>
+              <!-- Bar: Base Colour + per-bar overrides -->
+              <div class="color-row base-color-row">
+                <span class="color-label">Base Colour</span>
+                <button
+                  class="color-reset-btn"
+                  onclick={() => { baseBarColor = defaultBarColor; barBarColors = {}; updateChart(); }}
+                  title="Reset to default"
+                  aria-label="Reset to default"
+                >
+                  <img src="/icons/icon-reset.svg" alt="" width="16" height="16" />
+                </button>
+                <input
+                  type="color"
+                  class="color-picker"
+                  value={baseBarColor}
+                  oninput={(e) => { baseBarColor = (e.target as HTMLInputElement).value; updateChart(); }}
+                />
+              </div>
+
+              <!-- Per-bar colour overrides -->
+              {#each labels as label, i}
+                <div class="color-row bar-item-row">
+                  <span class="color-label">{label}</span>
+                  <button
+                    class="color-reset-btn"
+                    onclick={() => { delete barBarColors[i]; barBarColors = {...barBarColors}; updateChart(); }}
+                    title="Reset to base colour"
+                    aria-label="Reset to base colour"
+                    disabled={!barBarColors[i]}
+                  >
+                    <img src="/icons/icon-reset.svg" alt="" width="16" height="16" />
+                  </button>
                   <input
                     type="color"
                     class="color-picker"
-                    value={barSeriesColors[si] || barSeriesColors[0]}
-                    oninput={(e) => { barSeriesColors[si] = (e.target as HTMLInputElement).value; barSeriesColors = [...barSeriesColors]; updateChart(); }}
+                    value={barBarColors[i] || baseBarColor}
+                    oninput={(e) => { barBarColors[i] = (e.target as HTMLInputElement).value; barBarColors = {...barBarColors}; updateChart(); }}
                   />
                 </div>
               {/each}
@@ -1667,6 +1701,14 @@
     align-items: center;
     justify-content: space-between;
     gap: 0.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .color-row.base-color-row {
+    font-weight: var(--font-weight-semibold);
+    padding-bottom: 0.75rem;
+    margin-bottom: 0;
   }
 
   .color-label {
@@ -1679,10 +1721,36 @@
     white-space: nowrap;
   }
 
+  .color-reset-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all var(--duration-fast) ease;
+    flex-shrink: 0;
+    min-height: 28px;
+    min-width: 28px;
+    color: var(--text-medium);
+  }
+
+  .color-reset-btn:hover:not(:disabled) {
+    color: var(--color-primary);
+  }
+
+  .color-reset-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
   .bg-row {
-    margin-top: 0.5rem;
-    padding-top: 0.75rem;
-    border-top: 1px solid var(--color-border);
+    padding-bottom: 0;
+    border-bottom: none;
   }
 
   .bg-options {
