@@ -36,6 +36,12 @@
     { id: 'line', label: 'Line' }
   ];
 
+  function closeOtherAccordions(openSection: 'source' | 'summary' | 'explorer') {
+    if (openSection !== 'source') sourceOpen = false;
+    if (openSection !== 'summary') summaryOpen = false;
+    if (openSection !== 'explorer') explorerOpen = false;
+  }
+
   async function handleFileChange(e: Event) {
     const input = e.target as HTMLInputElement;
     const file = input.files?.[0];
@@ -77,7 +83,7 @@
       summaryText = data.summary || 'No summary available.';
       sourceOpen = false;
       summaryOpen = true;
-      explorerOpen = true;
+      explorerOpen = false;
     } catch (err) {
       summaryError = err instanceof Error ? err.message : 'Failed to extract and summarise document.';
       summaryText = '';
@@ -86,21 +92,60 @@
     }
   }
 
-  function handleUrlSubmit() {
+  async function handleUrlSubmit() {
     if (!urlInput.trim()) return;
-    aiState.value.sourceUrl = urlInput.trim();
+    
+    const url = urlInput.trim();
+    aiState.value.sourceUrl = url;
     aiState.value.sourceType = 'url';
-    aiState.value.extractedText = urlInput.trim();
-    summaryText = `URL source: ${urlInput.trim()}. Content will be fetched and analysed when you tap "Chart it".`;
-
+    
     summaryPreparing = true;
-    // Simulate brief preparation time then open summary
-    setTimeout(() => {
-      summaryPreparing = false;
+    summaryText = '';
+    summaryError = '';
+
+    try {
+      // Fetch URL content via server endpoint to avoid CORS
+      const res = await fetch('/api/fetch-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url })
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to fetch URL content');
+      }
+
+      const data = await res.json();
+      const extractedContent = data.text || '';
+      
+      if (!extractedContent.trim()) {
+        throw new Error('No readable content found at URL');
+      }
+
+      aiState.value.extractedText = extractedContent;
+
+      // Now summarize the fetched content
+      const summaryRes = await fetch('/api/summarize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ extractedText: extractedContent })
+      });
+
+      if (!summaryRes.ok) {
+        throw new Error('Failed to generate summary');
+      }
+
+      const summaryData = await summaryRes.json();
+      summaryText = summaryData.summary || 'No summary available.';
       sourceOpen = false;
       summaryOpen = true;
-      explorerOpen = true;
-    }, 600);
+      explorerOpen = false;
+    } catch (err) {
+      summaryError = err instanceof Error ? err.message : 'Failed to fetch and summarise URL.';
+      summaryText = '';
+    } finally {
+      summaryPreparing = false;
+    }
   }
 
   function handleDragOver(e: DragEvent) {
@@ -217,7 +262,7 @@
 <div class="source-tab">
   <!-- Add a source -->
   <div class="section-card card" class:collapsed={!sourceOpen} class:fading={summaryPreparing}>
-    <button class="accordion-header" class:open={sourceOpen} onclick={() => !summaryPreparing && (sourceOpen = !sourceOpen)} aria-expanded={sourceOpen} disabled={summaryPreparing}>
+    <button class="accordion-header" class:open={sourceOpen} onclick={() => !summaryPreparing && (sourceOpen ? (sourceOpen = false) : (closeOtherAccordions('source'), sourceOpen = true))} aria-expanded={sourceOpen} disabled={summaryPreparing}>
       <span class="accordion-title">Add a source</span>
       <svg class="chevron" width="20" height="20" viewBox="0 0 20 20" fill="none">
         <path d="M6 8l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -260,7 +305,7 @@
 
   <!-- Source summary -->
   <div class="section-card card" class:collapsed={!summaryOpen} class:disabled-card={!hasSource} class:opening={summaryOpen && hasSource}>
-    <button class="accordion-header" class:open={summaryOpen} onclick={() => hasSource && (summaryOpen = !summaryOpen)} aria-expanded={summaryOpen} disabled={!hasSource}>
+    <button class="accordion-header" class:open={summaryOpen} onclick={() => hasSource && (summaryOpen ? (summaryOpen = false) : (closeOtherAccordions('summary'), summaryOpen = true))} aria-expanded={summaryOpen} disabled={!hasSource}>
       <span class="accordion-title">Source summary</span>
       <svg class="chevron" width="20" height="20" viewBox="0 0 20 20" fill="none">
         <path d="M6 8l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -284,7 +329,7 @@
 
   <!-- Data explorer -->
   <div class="section-card card" class:active-border={explorerOpen} class:collapsed={!explorerOpen} class:disabled-card={!hasSource}>
-    <button class="accordion-header" class:open={explorerOpen} onclick={() => hasSource && (explorerOpen = !explorerOpen)} aria-expanded={explorerOpen} disabled={!hasSource}>
+    <button class="accordion-header" class:open={explorerOpen} onclick={() => hasSource && (explorerOpen ? (explorerOpen = false) : (closeOtherAccordions('explorer'), explorerOpen = true))} aria-expanded={explorerOpen} disabled={!hasSource}>
       <span class="accordion-title">Data explorer</span>
       <svg class="chevron" width="20" height="20" viewBox="0 0 20 20" fill="none">
         <path d="M6 8l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>

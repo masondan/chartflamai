@@ -18,6 +18,10 @@
     { id: 'line', label: 'Line' }
   ];
 
+  function toggleExplorer() {
+    explorerOpen = !explorerOpen;
+  }
+
   async function handleSubmit() {
     if (!query.trim()) return;
 
@@ -109,7 +113,7 @@
     </button>
 
     {#if explorerOpen}
-      <div class="explorer-form">
+       <div class="explorer-form" onclick={(e) => e.stopPropagation()}>
         <label class="field-label">
           Audience
           <input

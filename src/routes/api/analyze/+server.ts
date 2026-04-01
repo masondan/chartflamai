@@ -39,9 +39,11 @@ export const POST: RequestHandler = async ({ request, platform }) => {
       }
 
       try {
-        const useSearch = body.scope === 'search-widely' || body.sourceType === 'url';
+         // Only enable search if explicitly requested AND not restricting to source
+         const useSearch = body.scope === 'search-widely' && body.sourceType !== 'paste';
+         const isRestrictedMode = body.scope === 'restrict-to-source';
 
-        send({ type: 'progress', message: useSearch ? 'Searching for related data...' : 'Analysing data...' });
+         send({ type: 'progress', message: useSearch ? 'Searching for related data...' : 'Analysing data...' });
 
         let systemPrompt: string;
         let userMessage: string;
@@ -65,7 +67,7 @@ export const POST: RequestHandler = async ({ request, platform }) => {
           apiKey: geminiKey,
           systemPrompt,
           userMessage,
-          useSearch
+          useSearch: isRestrictedMode ? false : useSearch
         });
 
         send({ type: 'progress', message: 'Structuring data for charts...' });
@@ -83,7 +85,7 @@ export const POST: RequestHandler = async ({ request, platform }) => {
           apiKey: geminiKey,
           systemPrompt: systemPrompt + '\n\nCRITICAL: Return ONLY valid JSON. No markdown, no explanation. Just the JSON object.',
           userMessage,
-          useSearch
+          useSearch: isRestrictedMode ? false : useSearch
         });
 
         const retryValidation = validateAngleResponse(retryResult);

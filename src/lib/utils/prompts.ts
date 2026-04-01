@@ -70,7 +70,10 @@ export function getSourceSystemPrompt(scope: string, audience: string): string {
   const useSearch = scope === 'search-widely';
   const scopeInstruction = useSearch
     ? 'Search the web for additional data and context to supplement the source document.'
-    : 'Restrict your analysis to ONLY the data found in the provided source document.';
+    : `CRITICAL: You MUST analyse ONLY the data provided in the SOURCE DOCUMENT. 
+Do NOT invent, infer, or supplement data from other sources, websites, or external knowledge.
+If a story angle cannot be supported by the exact numbers and facts in the provided document, do NOT include it.
+Every data point in your angles MUST be traceable to the source document.`;
 
   return `You are a Senior Data Journalist AI analysing a source document for a journalist.
 
