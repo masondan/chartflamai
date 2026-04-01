@@ -462,6 +462,25 @@
   }
 
   // ─── Download ───
+  function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
+    const lines: string[] = [];
+    for (const paragraph of text.split('\n')) {
+      const words = paragraph.split(' ');
+      let currentLine = '';
+      for (const word of words) {
+        const testLine = currentLine ? `${currentLine} ${word}` : word;
+        if (ctx.measureText(testLine).width > maxWidth && currentLine) {
+          lines.push(currentLine);
+          currentLine = word;
+        } else {
+          currentLine = testLine;
+        }
+      }
+      lines.push(currentLine);
+    }
+    return lines;
+  }
+
   function downloadChart() {
     if (!chartInstance || !canvas) return;
 
@@ -473,10 +492,35 @@
     const chartWidth = 1000;
     const chartHeight = chartWidth * canvasAspectRatio;
 
+    // Pre-measure title and caption for word wrapping
+    const measureCanvas = document.createElement('canvas');
+    const measureCtx = measureCanvas.getContext('2d')!;
+    const textMaxWidth = exportWidth - 80;
+
+    const titleFontSize = 48;
+    const titleLineSpacing = titleFontSize * titleLineHeight;
+    let titleLines: string[] = [];
+    let titleBlockHeight = 0;
+    if (chartTitle) {
+      measureCtx.font = `${titleBold ? 'bold' : 'normal'} ${titleItalic ? 'italic' : 'normal'} ${titleFontSize}px '${titleFont}', sans-serif`;
+      titleLines = wrapText(measureCtx, chartTitle, textMaxWidth);
+      titleBlockHeight = (titleLines.length * titleLineSpacing) + 20;
+    }
+
+    const captionFontSize = 28;
+    const captionLineSpacing = captionFontSize * captionLineHeight;
+    let captionLines: string[] = [];
+    let captionBlockHeight = 0;
+    if (chartCaption) {
+      measureCtx.font = `${captionBold ? 'bold' : 'normal'} ${captionItalic ? 'italic' : 'normal'} ${captionFontSize}px '${captionFont}', sans-serif`;
+      captionLines = wrapText(measureCtx, chartCaption, textMaxWidth);
+      captionBlockHeight = 40 + (captionLines.length * captionLineSpacing);
+    }
+
     let totalHeight = 120;
-    if (chartTitle) totalHeight += 80;
+    totalHeight += titleBlockHeight;
     totalHeight += chartHeight;
-    if (chartCaption) totalHeight += 80;
+    totalHeight += captionBlockHeight;
     totalHeight += 60;
 
     const tempCanvas = document.createElement('canvas');
@@ -493,15 +537,13 @@
 
     if (chartTitle) {
       tempCtx.fillStyle = titleColor;
-      tempCtx.font = `${titleBold ? 'bold' : 'normal'} ${titleItalic ? 'italic' : 'normal'} 48px '${titleFont}', sans-serif`;
+      tempCtx.font = `${titleBold ? 'bold' : 'normal'} ${titleItalic ? 'italic' : 'normal'} ${titleFontSize}px '${titleFont}', sans-serif`;
       tempCtx.textAlign = titleAlign;
       const titleX = titleAlign === 'left' ? 40 : (titleAlign === 'right' ? exportWidth - 40 : exportWidth / 2);
-      const titleLines = chartTitle.split('\n');
-      const lineHeight = 48 * titleLineHeight;
       titleLines.forEach((line, idx) => {
-        tempCtx.fillText(line, titleX, yOffset + (idx * lineHeight));
+        tempCtx.fillText(line, titleX, yOffset + (idx * titleLineSpacing));
       });
-      yOffset += 80;
+      yOffset += titleBlockHeight;
     }
 
     // Temporarily disable tooltip for clean export
@@ -519,11 +561,9 @@
 
       if (chartCaption) {
         tempCtx.fillStyle = captionColor;
-        tempCtx.font = `${captionBold ? 'bold' : 'normal'} ${captionItalic ? 'italic' : 'normal'} 28px '${captionFont}', sans-serif`;
+        tempCtx.font = `${captionBold ? 'bold' : 'normal'} ${captionItalic ? 'italic' : 'normal'} ${captionFontSize}px '${captionFont}', sans-serif`;
         tempCtx.textAlign = captionAlign;
         const captionX = captionAlign === 'left' ? 40 : (captionAlign === 'right' ? exportWidth - 40 : exportWidth / 2);
-        const captionLines = chartCaption.split('\n');
-        const captionLineSpacing = 28 * captionLineHeight;
         captionLines.forEach((line, idx) => {
           tempCtx.fillText(line, captionX, yOffset + (idx * captionLineSpacing));
         });

@@ -18,7 +18,7 @@
   let horizontalSpacing = $state(50);
   let verticalSpacing = $state(50);
   let activeSpacingControl = $state<'horizontal' | 'vertical'>('horizontal');
-  let currentIconName = $state('gas');
+  let currentIconName = $state('food-apple');
   let currentIconSvg = $state('');
   let allIcons = $state<PictogramIcon[]>([]);
   let iconCategories = $state<Record<string, PictogramIcon[]>>({});
@@ -86,9 +86,10 @@
     const iconsPerRow = 5;
     const totalIcons = 10;
     const rows = 2;
-    const padding = Math.round(40 * (targetWidth / 1080));
-    const hSpacing = hSpace - 50;
-    const vSpacing = vSpace - 50;
+    const scale = targetWidth / 1080;
+    const padding = 40 * scale;
+    const hSpacing = (hSpace - 50) * scale;
+    const vSpacing = (vSpace - 50) * scale;
     const availableWidth = targetWidth - (padding * 2);
     const iconWidth = (availableWidth - (hSpacing * (iconsPerRow - 1))) / iconsPerRow;
     const aspect = getIconAspectRatio(svgString);
@@ -159,7 +160,7 @@
     });
     iconCategories = cats;
 
-    const defaultIcon = allIcons.find(i => i.name === 'gas');
+    const defaultIcon = allIcons.find(i => i.name === 'food-apple');
     if (defaultIcon) {
       currentIconSvg = sanitizeSvg(defaultIcon.svg);
     }
@@ -243,16 +244,56 @@
     }
   }
 
+  // ─── Canvas text wrapping ───
+  function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
+    const lines: string[] = [];
+    for (const paragraph of text.split('\n')) {
+      const words = paragraph.split(' ');
+      let currentLine = '';
+      for (const word of words) {
+        const testLine = currentLine ? `${currentLine} ${word}` : word;
+        if (ctx.measureText(testLine).width > maxWidth && currentLine) {
+          lines.push(currentLine);
+          currentLine = word;
+        } else {
+          currentLine = testLine;
+        }
+      }
+      lines.push(currentLine);
+    }
+    return lines;
+  }
+
   // ─── Download ───
   async function downloadPictogram() {
     const exportWidth = 1080;
     const layout = calculatePictogramLayout(exportWidth, currentIconSvg, horizontalSpacing, verticalSpacing);
 
-    let totalHeight = 120;
-    if (chartTitle) totalHeight += 80;
-    totalHeight += layout.canvasHeight;
-    if (chartCaption) totalHeight += 80;
-    totalHeight += 60;
+    // Pre-measure title and caption to calculate total height
+    const measureCanvas = document.createElement('canvas');
+    const measureCtx = measureCanvas.getContext('2d')!;
+
+    const exportTitleSize = Math.round(titleSize * (exportWidth / 480));
+    const titleLineSpacing = exportTitleSize * titleLineHeight;
+    let titleLines: string[] = [];
+    let titleBlockHeight = 0;
+    if (chartTitle) {
+      measureCtx.font = `${titleBold ? 'bold' : 'normal'} ${titleItalic ? 'italic' : 'normal'} ${exportTitleSize}px ${titleFont}, sans-serif`;
+      titleLines = wrapText(measureCtx, chartTitle, exportWidth - layout.padding * 2);
+      titleBlockHeight = 60 + (titleLines.length * titleLineSpacing) + 20;
+    }
+
+    const exportCaptionSize = Math.round(captionSize * (exportWidth / 480));
+    const captionLineSpacing = exportCaptionSize * captionLineHeight;
+    let captionLines: string[] = [];
+    let captionBlockHeight = 0;
+    if (chartCaption) {
+      measureCtx.font = `${captionBold ? 'bold' : 'normal'} ${captionItalic ? 'italic' : 'normal'} ${exportCaptionSize}px ${captionFont}, sans-serif`;
+      captionLines = wrapText(measureCtx, chartCaption, exportWidth - layout.padding * 2);
+      captionBlockHeight = 20 + (captionLines.length * captionLineSpacing) + 20;
+    }
+
+    let totalHeight = layout.canvasHeight + titleBlockHeight + captionBlockHeight;
 
     const exportCanvas = document.createElement('canvas');
     const ctx = exportCanvas.getContext('2d')!;
@@ -264,16 +305,17 @@
       ctx.fillRect(0, 0, exportWidth, totalHeight);
     }
 
-    let yOffset = 60;
+    let gridY = 0;
 
     if (chartTitle) {
       ctx.fillStyle = titleColor;
-      const exportTitleSize = Math.round(titleSize * (exportWidth / 480));
       ctx.font = `${titleBold ? 'bold' : 'normal'} ${titleItalic ? 'italic' : 'normal'} ${exportTitleSize}px ${titleFont}, sans-serif`;
       ctx.textAlign = titleAlign;
       const titleX = titleAlign === 'left' ? layout.padding : (titleAlign === 'right' ? exportWidth - layout.padding : exportWidth / 2);
-      ctx.fillText(chartTitle, titleX, yOffset);
-      yOffset += 80;
+      titleLines.forEach((line, idx) => {
+        ctx.fillText(line, titleX, 60 + (idx * titleLineSpacing));
+      });
+      gridY = titleBlockHeight;
     }
 
     const filled = pictogramFilled;
@@ -284,7 +326,7 @@
       const row = Math.floor(i / layout.iconsPerRow);
       const col = i % layout.iconsPerRow;
       const x = layout.padding + (col * (layout.iconWidth + layout.hSpacing));
-      const y = yOffset + layout.padding + (row * (layout.iconHeight + layout.vSpacing));
+      const y = gridY + layout.padding + (row * (layout.iconHeight + layout.vSpacing));
 
       if (i < fullIcons) {
         await renderSvgToCanvas(ctx, currentIconSvg, x, y, layout.iconWidth, layout.iconHeight, pictogramFilledColor);
@@ -307,13 +349,14 @@
     }
 
     if (chartCaption) {
-      const captionY = yOffset + layout.canvasHeight + 40;
       ctx.fillStyle = captionColor;
-      const exportCaptionSize = Math.round(captionSize * (exportWidth / 480));
       ctx.font = `${captionBold ? 'bold' : 'normal'} ${captionItalic ? 'italic' : 'normal'} ${exportCaptionSize}px ${captionFont}, sans-serif`;
       ctx.textAlign = captionAlign;
       const captionX = captionAlign === 'left' ? layout.padding : (captionAlign === 'right' ? exportWidth - layout.padding : exportWidth / 2);
-      ctx.fillText(chartCaption, captionX, captionY);
+      const captionStartY = gridY + layout.canvasHeight + 20;
+      captionLines.forEach((line, idx) => {
+        ctx.fillText(line, captionX, captionStartY + (idx * captionLineSpacing));
+      });
     }
 
     const link = document.createElement('a');
@@ -567,7 +610,7 @@
               <input
                 type="range"
                 class="style-slider"
-                min="0"
+                min="-160"
                 max="100"
                 value={spacingSliderValue}
                 oninput={(e) => {
@@ -654,13 +697,14 @@
         </button>
         {#if openSection === 'title'}
           <div class="section-body">
-            <input
-              type="text"
-              value={chartTitle}
-              oninput={(e) => { chartTitle = (e.target as HTMLInputElement).value; }}
+            <textarea
+              class="title-input"
+              bind:value={chartTitle}
               placeholder="Add chart title"
-              maxlength={100}
-            />
+              maxlength={200}
+              rows="1"
+              oninput={(e) => { const t = e.target as HTMLTextAreaElement; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }}
+            ></textarea>
             <div class="text-control-row">
               <select class="font-select" bind:value={titleFont} style="font-family: '{titleFont}', sans-serif;">
                 {#each fontOptions as font}
@@ -713,13 +757,14 @@
         </button>
         {#if openSection === 'caption'}
           <div class="section-body">
-            <input
-              type="text"
-              value={chartCaption}
-              oninput={(e) => { chartCaption = (e.target as HTMLInputElement).value; }}
+            <textarea
+              class="caption-input"
+              bind:value={chartCaption}
               placeholder="Caption and Data Source"
-              maxlength={200}
-            />
+              maxlength={300}
+              rows="1"
+              oninput={(e) => { const t = e.target as HTMLTextAreaElement; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }}
+            ></textarea>
             <div class="text-control-row">
               <select class="font-select" bind:value={captionFont} style="font-family: '{captionFont}', sans-serif;">
                 {#each fontOptions as font}
@@ -886,6 +931,8 @@
 
   .preview-title {
     margin-bottom: 0.5rem;
+    word-wrap: break-word;
+    white-space: pre-line;
   }
 
   .canvas-container {
@@ -902,6 +949,8 @@
   .preview-caption {
     margin-top: 0.375rem;
     margin-bottom: 0;
+    word-wrap: break-word;
+    white-space: pre-line;
   }
 
   /* Controls */
@@ -1303,6 +1352,27 @@
       width: 30px;
       height: 30px;
     }
+  }
+
+  /* Title/Caption textareas */
+  .title-input,
+  .caption-input {
+    width: 100%;
+    padding: 0.625rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--white);
+    font-size: var(--font-size-sm);
+    font-family: inherit;
+    resize: none;
+    overflow: hidden;
+    white-space: pre-line;
+  }
+
+  .title-input::placeholder,
+  .caption-input::placeholder {
+    color: #999999;
+    opacity: 1;
   }
 
   /* Download */

@@ -294,16 +294,60 @@
     }
   }
 
+  function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
+    const lines: string[] = [];
+    for (const paragraph of text.split('\n')) {
+      const words = paragraph.split(' ');
+      let currentLine = '';
+      for (const word of words) {
+        const testLine = currentLine ? `${currentLine} ${word}` : word;
+        if (ctx.measureText(testLine).width > maxWidth && currentLine) {
+          lines.push(currentLine);
+          currentLine = word;
+        } else {
+          currentLine = testLine;
+        }
+      }
+      lines.push(currentLine);
+    }
+    return lines;
+  }
+
   async function downloadWaffle() {
     const exportWidth = 1080;
     const { total, rows } = getGridDimensions();
     const cellSize = (exportWidth - cellGap * (gridCols - 1)) / gridCols - 2;
     const gridHeight = rows * cellSize + cellGap * (rows - 1) + 20;
 
+    // Pre-measure title and caption for word wrapping
+    const measureCanvas = document.createElement('canvas');
+    const measureCtx = measureCanvas.getContext('2d')!;
+    const textMaxWidth = exportWidth - 80;
+
+    const exportTitleFontSize = Math.round(titleSize * 2);
+    const titleLineSpacing = exportTitleFontSize * 1.3;
+    let titleLines: string[] = [];
+    let titleBlockHeight = 0;
+    if (chartTitle) {
+      measureCtx.font = `${titleBold ? 'bold' : 'normal'} ${exportTitleFontSize}px ${titleFont}, sans-serif`;
+      titleLines = wrapText(measureCtx, chartTitle, textMaxWidth);
+      titleBlockHeight = (titleLines.length * titleLineSpacing) + 30;
+    }
+
+    const exportCaptionFontSize = Math.round(captionSize * 2);
+    const captionLineSpacing = exportCaptionFontSize * 1.3;
+    let captionLines: string[] = [];
+    let captionBlockHeight = 0;
+    if (chartCaption) {
+      measureCtx.font = `${exportCaptionFontSize}px ${captionFont}, sans-serif`;
+      captionLines = wrapText(measureCtx, chartCaption, textMaxWidth);
+      captionBlockHeight = 40 + (captionLines.length * captionLineSpacing);
+    }
+
     let totalHeight = 40;
-    if (chartTitle) totalHeight += 100;
+    totalHeight += titleBlockHeight;
     totalHeight += gridHeight + 40;
-    if (chartCaption) totalHeight += 100;
+    totalHeight += captionBlockHeight;
 
     const exportCanvas = document.createElement('canvas');
     const ctx = exportCanvas.getContext('2d')!;
@@ -319,11 +363,13 @@
 
     if (chartTitle) {
       ctx.fillStyle = titleColor;
-      ctx.font = `${titleBold ? 'bold' : 'normal'} ${Math.round(titleSize * 2)}px ${titleFont}, sans-serif`;
+      ctx.font = `${titleBold ? 'bold' : 'normal'} ${exportTitleFontSize}px ${titleFont}, sans-serif`;
       ctx.textAlign = titleAlign;
       const titleX = titleAlign === 'left' ? 40 : titleAlign === 'right' ? exportWidth - 40 : exportWidth / 2;
-      ctx.fillText(chartTitle, titleX, yOffset + 50);
-      yOffset += 100;
+      titleLines.forEach((line, idx) => {
+        ctx.fillText(line, titleX, yOffset + 50 + (idx * titleLineSpacing));
+      });
+      yOffset += titleBlockHeight;
     }
 
     // Draw grid
@@ -351,10 +397,12 @@
 
     if (chartCaption) {
       ctx.fillStyle = captionColor;
-      ctx.font = `${Math.round(captionSize * 2)}px ${captionFont}, sans-serif`;
+      ctx.font = `${exportCaptionFontSize}px ${captionFont}, sans-serif`;
       ctx.textAlign = captionAlign;
       const captionX = captionAlign === 'left' ? 40 : captionAlign === 'right' ? exportWidth - 40 : exportWidth / 2;
-      ctx.fillText(chartCaption, captionX, yOffset + 40);
+      captionLines.forEach((line, idx) => {
+        ctx.fillText(line, captionX, yOffset + 40 + (idx * captionLineSpacing));
+      });
     }
 
     const link = document.createElement('a');
