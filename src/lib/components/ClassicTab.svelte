@@ -400,10 +400,8 @@
     gap: 0.5rem;
   }
 
-  .starter-btn:hover {
-    background: var(--color-highlight);
-    box-shadow: var(--shadow-md);
-    border-color: #7c3aed;
+  .starter-btn:hover .starter-thumb {
+    transform: scale(1.05);
   }
 
   .starter-thumb {
@@ -411,6 +409,7 @@
     height: auto;
     border-radius: calc(var(--radius-lg) - 1px);
     object-fit: cover;
+    transition: transform var(--duration-fast) ease;
   }
 
   .starter-label {
