@@ -9,6 +9,9 @@
   let summaryOpen = $state(false);
   let explorerOpen = $state(false);
   let progressMessage = $state('');
+  let buttonMessage = $state('Find Stories');
+  let messageInterval: ReturnType<typeof setInterval> | null = null;
+  const loadingMessages = ['Digging for data', 'Selecting angles', 'Checking'];
 
   let urlInput = $state('');
   let fileName = $state('');
@@ -136,7 +139,14 @@
 
     uiState.setLoading(true);
     aiState.setStep('loading');
-    progressMessage = 'Connecting...';
+    
+    // Start cycling through loading messages every 3 seconds
+    let messageIndex = 0;
+    buttonMessage = loadingMessages[messageIndex];
+    messageInterval = setInterval(() => {
+      messageIndex = (messageIndex + 1) % loadingMessages.length;
+      buttonMessage = loadingMessages[messageIndex];
+    }, 3000);
 
     try {
       const res = await fetch('/api/analyze', {
@@ -174,10 +184,14 @@
           if (!match) continue;
           try {
             const event = JSON.parse(match[1]);
-            if (event.type === 'progress') progressMessage = event.message;
+            if (event.type === 'progress') buttonMessage = event.message;
             else if (event.type === 'result') {
               aiState.setResponse(event.data);
               explorerOpen = false;
+              // Auto-expand the first story
+              if (event.data.angles && event.data.angles.length > 0) {
+                uiState.expandAngle(event.data.angles[0].id);
+              }
             } else if (event.type === 'error') throw new Error(event.message);
           } catch (e) {
             if (e instanceof Error && e.message !== match[1]) throw e;
@@ -187,8 +201,9 @@
     } catch (err) {
       aiState.setError(err instanceof Error ? err.message : 'An unexpected error occurred');
     } finally {
+      if (messageInterval) clearInterval(messageInterval);
       uiState.setLoading(false);
-      progressMessage = '';
+      buttonMessage = 'Find Stories';
     }
   }
 </script>
@@ -301,13 +316,16 @@
           </div>
         </div>
 
-        <button class="submit-btn primary" onclick={handleSubmit} disabled={!hasSource || uiState.value.isLoading}>
+        <button 
+          class="submit-btn primary" 
+          class:loading={uiState.value.isLoading}
+          onclick={handleSubmit} 
+          disabled={!hasSource || uiState.value.isLoading}
+        >
           {#if uiState.value.isLoading}
             <span class="spinner"></span>
-            Analyzing...
-          {:else}
-            Chart it
           {/if}
+          {buttonMessage}
         </button>
       </div>
     {/if}
@@ -323,22 +341,17 @@
   {/if}
 
   {#if aiState.value.step === 'loading'}
-    <div class="loading-section">
-      {#if progressMessage}
-        <div class="progress-message"><span class="spinner"></span><span>{progressMessage}</span></div>
-      {/if}
-      <div class="loading-cards">
-        {#each Array(3) as _}
-          <div class="skeleton-card card"><div class="skeleton-line wide"></div><div class="skeleton-line narrow"></div></div>
-        {/each}
-      </div>
+    <div class="loading-cards">
+      {#each Array(3) as _}
+        <div class="skeleton-card card"><div class="skeleton-line wide"></div><div class="skeleton-line narrow"></div></div>
+      {/each}
     </div>
   {/if}
 
   {#if aiState.value.step === 'results' && aiState.value.apiResponse}
-    {#each aiState.value.apiResponse.angles as angle}
+    {#each aiState.value.apiResponse.angles as angle, index}
       {#await import('./AngleCard.svelte') then module}
-        <module.default {angle} />
+        <module.default {angle} storyNumber={index + 1} />
       {/await}
     {/each}
   {/if}
@@ -620,11 +633,15 @@
     font-weight: var(--font-weight-semibold);
   }
 
+  .submit-btn.loading {
+    background: var(--color-primary) !important;
+    color: var(--white);
+    border-color: var(--color-primary);
+  }
+
   .error-card { border-color: var(--color-error); text-align: center; }
   .error-message { color: var(--color-error); font-weight: var(--font-weight-medium); }
 
-  .loading-section { display: flex; flex-direction: column; gap: 0.75rem; }
-  .progress-message { display: flex; align-items: center; justify-content: center; gap: 0.625rem; padding: 0.75rem; font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); color: var(--color-primary); }
   .loading-cards { display: flex; flex-direction: column; gap: 0.75rem; }
   .skeleton-card { padding: 1.25rem; }
   .skeleton-line { height: 0.875rem; background: var(--bg-light); border-radius: var(--radius-sm); animation: pulse 1.5s ease-in-out infinite; }

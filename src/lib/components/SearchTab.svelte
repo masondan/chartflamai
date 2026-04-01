@@ -9,7 +9,7 @@
   let progressMessage = $state('');
   let buttonMessage = $state('Find Stories');
   let messageInterval: ReturnType<typeof setInterval> | null = null;
-  const loadingMessages = ['Searching for data', 'Selecting angles', 'Checking'];
+  const loadingMessages = ['Digging for data', 'Selecting angles', 'Checking'];
 
   const chartTypeOptions = [
     { id: 'any', label: 'Any' },
@@ -72,6 +72,10 @@
             } else if (event.type === 'result') {
               aiState.setResponse(event.data);
               explorerOpen = false;
+              // Auto-expand the first story
+              if (event.data.angles && event.data.angles.length > 0) {
+                uiState.expandAngle(event.data.angles[0].id);
+              }
             } else if (event.type === 'error') {
               throw new Error(event.message);
             }

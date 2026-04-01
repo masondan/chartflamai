@@ -28,6 +28,9 @@ function createUiState() {
     toggleAngle(angleId: string) {
       state.expandedAngleId = state.expandedAngleId === angleId ? null : angleId;
     },
+    expandAngle(angleId: string) {
+      state.expandedAngleId = angleId;
+    },
     openDrawer(drawer: NonNullable<UiState['activeDrawer']>, angleId: string) {
       state.activeDrawer = drawer;
       state.activeDrawerAngleId = angleId;

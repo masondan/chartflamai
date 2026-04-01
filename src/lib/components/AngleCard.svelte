@@ -100,11 +100,17 @@
     border-radius: var(--radius-lg);
     overflow: hidden;
     box-shadow: var(--shadow-sm);
-    transition: border-color var(--duration-fast) ease;
+    transition: border-color var(--duration-normal) ease, opacity var(--duration-normal) ease;
+    animation: fadeIn var(--duration-normal) ease-out;
   }
 
   .angle-card.expanded {
     border-color: var(--color-primary);
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
   }
 
   .angle-header {
@@ -157,7 +163,7 @@
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
-    animation: slideUp 0.2s ease-out;
+    animation: slideUpFade var(--duration-normal) ease-out;
   }
 
   .angle-summary {
@@ -211,8 +217,14 @@
     background: var(--color-highlight);
   }
 
-  @keyframes slideUp {
-    from { transform: translateY(0.5rem); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
+  @keyframes slideUpFade {
+    from { 
+      transform: translateY(0.25rem); 
+      opacity: 0; 
+    }
+    to { 
+      transform: translateY(0); 
+      opacity: 1; 
+    }
   }
 </style>
