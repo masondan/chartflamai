@@ -106,7 +106,7 @@
         </label>
 
         <label class="field-label">
-          Question
+          Topic
           <input
             type="text"
             bind:value={query}
@@ -263,7 +263,7 @@
     font-weight: var(--font-weight-medium);
     background: var(--white);
     color: var(--color-primary);
-    border: 1.5px solid var(--color-primary);
+    border: 1px solid var(--color-primary);
     min-height: 38px;
     transition: all var(--duration-fast) ease;
   }

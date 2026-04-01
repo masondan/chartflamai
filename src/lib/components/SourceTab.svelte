@@ -22,6 +22,8 @@
   let summaryLoading = $state(false);
   let summaryError = $state('');
   let fileError = $state('');
+  let isDragOver = $state(false);
+  let fileInput: HTMLInputElement;
 
   const chartTypeOptions = [
     { id: 'any', label: 'Any' },
@@ -90,6 +92,41 @@
     sourceOpen = false;
     summaryOpen = true;
     explorerOpen = true;
+  }
+
+  function handleDragOver(e: DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    isDragOver = true;
+  }
+
+  function handleDragLeave(e: DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    isDragOver = false;
+  }
+
+  function handleDrop(e: DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    isDragOver = false;
+
+    const files = e.dataTransfer?.files;
+    if (!files || files.length === 0) return;
+
+    const file = files[0];
+    if (file.type !== 'application/pdf' && !file.name.endsWith('.pdf')) {
+      fileError = 'Please upload a PDF file';
+      return;
+    }
+
+    // Trigger file change handler
+    const dataTransfer = new DataTransfer();
+    dataTransfer.items.add(file);
+    fileInput.files = dataTransfer.files;
+    
+    const event = new Event('change', { bubbles: true });
+    fileInput.dispatchEvent(event);
   }
 
   let hasSource = $derived(!!aiState.value.extractedText);
@@ -167,8 +204,8 @@
     </button>
     {#if sourceOpen}
       <div class="section-body">
-        <label class="upload-zone">
-          <input type="file" accept=".pdf,.docx" onchange={handleFileChange} class="visually-hidden" />
+        <label class="upload-zone" class:drag-over={isDragOver} ondragover={handleDragOver} ondragleave={handleDragLeave} ondrop={handleDrop}>
+          <input type="file" accept=".pdf,.docx" onchange={handleFileChange} class="visually-hidden" bind:this={fileInput} />
           <img src="/icons/icon-upload.svg" alt="" width="32" height="32" class="upload-icon" />
           <span class="upload-label">Upload PDF/DOCX</span>
           {#if fileName}
@@ -221,8 +258,8 @@
   {/if}
 
   <!-- Data explorer -->
-  <div class="section-card card" class:active-border={explorerOpen}>
-    <button class="accordion-header" class:open={explorerOpen} onclick={() => explorerOpen = !explorerOpen} aria-expanded={explorerOpen}>
+  <div class="section-card card" class:active-border={explorerOpen} class:disabled-card={!hasSource}>
+    <button class="accordion-header" class:open={explorerOpen} onclick={() => hasSource && (explorerOpen = !explorerOpen)} aria-expanded={explorerOpen} disabled={!hasSource}>
       <span class="accordion-title">Data explorer</span>
       <svg class="chevron" width="20" height="20" viewBox="0 0 20 20" fill="none">
         <path d="M6 8l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -244,7 +281,7 @@
         </label>
 
         <label class="field-label">
-          Question
+          Topic
           <input type="text" bind:value={query} placeholder="What do you want the chart to show?" disabled={uiState.value.isLoading || suggestAngles} />
         </label>
 
@@ -318,6 +355,11 @@
     padding: 0;
   }
 
+  .section-card.disabled-card {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
   .section-card.collapsed {
     border-color: var(--color-border);
   }
@@ -375,6 +417,11 @@
 
   .upload-zone:hover {
     border-color: var(--color-primary);
+  }
+
+  .upload-zone.drag-over {
+    border-color: var(--color-primary);
+    background-color: var(--color-highlight);
   }
 
   .upload-icon {
@@ -501,7 +548,7 @@
     font-weight: var(--font-weight-medium);
     background: var(--white);
     color: var(--color-primary);
-    border: 1.5px solid var(--color-primary);
+    border: 1px solid var(--color-primary);
     min-height: 38px;
     transition: all var(--duration-fast) ease;
   }
@@ -524,7 +571,7 @@
     align-items: center;
     justify-content: space-between;
     font-size: var(--font-size-sm);
-    color: var(--text-secondary);
+    color: var(--text-dark);
     cursor: pointer;
   }
 
@@ -554,7 +601,7 @@
     font-weight: var(--font-weight-medium);
     background: var(--white);
     color: var(--color-primary);
-    border: 1.5px solid var(--color-primary);
+    border: 1px solid var(--color-primary);
     min-height: 38px;
     transition: all var(--duration-fast) ease;
   }
