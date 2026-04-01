@@ -19,7 +19,7 @@
 
   let gridCols = $state(10);
   let cellGap = $state(4);
-  let cellShape = $state<'square' | 'circle' | 'diamond' | 'heart'>('square');
+  let cellShape = $state<'square' | 'square-outline' | 'circle' | 'circle-outline'>('square');
   let cellRounding = $state(0);
   let bgColor = $state<'white' | 'transparent' | string>('white');
 
@@ -191,6 +191,7 @@
     shape: string
   ) {
     ctx.fillStyle = color;
+    ctx.strokeStyle = color;
 
     switch (shape) {
       case 'circle':
@@ -199,18 +200,11 @@
         ctx.fill();
         break;
 
-      case 'diamond':
+      case 'circle-outline':
+        ctx.lineWidth = 4.5;
         ctx.beginPath();
-        ctx.moveTo(x + size / 2, y);
-        ctx.lineTo(x + size, y + size / 2);
-        ctx.lineTo(x + size / 2, y + size);
-        ctx.lineTo(x, y + size / 2);
-        ctx.closePath();
-        ctx.fill();
-        break;
-
-      case 'heart':
-        drawHeart(ctx, x, y, size);
+        ctx.arc(x + size / 2, y + size / 2, size / 2 - 2.5, 0, Math.PI * 2);
+        ctx.stroke();
         break;
 
       case 'square':
@@ -226,24 +220,23 @@
           ctx.fill();
         }
       }
-    }
-  }
+        break;
 
-  function drawHeart(ctx: CanvasRenderingContext2D, x: number, y: number, size: number) {
-    const s = size * 0.85;
-    const ox = x + (size - s) / 2;
-    const oy = y + (size - s) / 2 + s * 0.05;
-    ctx.beginPath();
-    const topY = oy + s * 0.35;
-    ctx.moveTo(ox + s / 2, oy + s);
-    ctx.bezierCurveTo(ox + s / 2 - s * 0.02, oy + s * 0.72, ox, oy + s * 0.5, ox, topY);
-    ctx.bezierCurveTo(ox, oy + s * 0.1, ox + s * 0.2, oy, ox + s * 0.35, oy);
-    ctx.bezierCurveTo(ox + s * 0.42, oy, ox + s / 2, oy + s * 0.08, ox + s / 2, oy + s * 0.2);
-    ctx.bezierCurveTo(ox + s / 2, oy + s * 0.08, ox + s * 0.58, oy, ox + s * 0.65, oy);
-    ctx.bezierCurveTo(ox + s * 0.8, oy, ox + s, oy + s * 0.1, ox + s, topY);
-    ctx.bezierCurveTo(ox + s, oy + s * 0.5, ox + s / 2 + s * 0.02, oy + s * 0.72, ox + s / 2, oy + s);
-    ctx.closePath();
-    ctx.fill();
+      case 'square-outline': {
+        const r = Math.min(cellRounding, size / 2 - 1);
+        ctx.lineWidth = 4.5;
+        if (r > 0) {
+          ctx.beginPath();
+          ctx.roundRect(x + 2, y + 2, size - 4, size - 4, r);
+          ctx.stroke();
+        } else {
+          ctx.beginPath();
+          ctx.rect(x + 2, y + 2, size - 4, size - 4);
+          ctx.stroke();
+        }
+      }
+        break;
+    }
   }
 
   async function renderWaffle() {
@@ -714,24 +707,24 @@
         <div class="section-body">
           <!-- Shape toggles -->
           <div class="shape-toggles">
-            <button class="shape-btn" class:active={cellShape === 'square'} onclick={() => cellShape = 'square'} title="Square">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <button class="shape-btn" class:active={cellShape === 'square'} onclick={() => cellShape = 'square'} title="Filled square">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
                 <rect x="4" y="4" width="16" height="16"/>
               </svg>
             </button>
-            <button class="shape-btn" class:active={cellShape === 'circle'} onclick={() => cellShape = 'circle'} title="Circle">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <button class="shape-btn" class:active={cellShape === 'square-outline'} onclick={() => cellShape = 'square-outline'} title="Outline square">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="5" y="5" width="14" height="14"/>
+              </svg>
+            </button>
+            <button class="shape-btn" class:active={cellShape === 'circle'} onclick={() => cellShape = 'circle'} title="Filled circle">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
                 <circle cx="12" cy="12" r="8"/>
               </svg>
             </button>
-            <button class="shape-btn" class:active={cellShape === 'diamond'} onclick={() => cellShape = 'diamond'} title="Diamond">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 4l8 8-8 8-8-8z"/>
-              </svg>
-            </button>
-            <button class="shape-btn" class:active={cellShape === 'heart'} onclick={() => cellShape = 'heart'} title="Heart">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            <button class="shape-btn" class:active={cellShape === 'circle-outline'} onclick={() => cellShape = 'circle-outline'} title="Outline circle">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="7"/>
               </svg>
             </button>
           </div>
@@ -743,7 +736,7 @@
           </div>
 
           <!-- Rounding (squares only) -->
-          {#if cellShape === 'square'}
+          {#if cellShape === 'square' || cellShape === 'square-outline'}
             <div class="control-group">
               <label>Rounding</label>
               <input type="range" bind:value={cellRounding} min="0" max="12" step="1" />
@@ -1417,6 +1410,42 @@
     accent-color: var(--color-primary);
     min-height: auto;
     padding: 0;
+    border: none;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    background: #e0e0e0;
+    border-radius: 3px;
+    outline: none;
+  }
+
+  input[type='range']:focus {
+    outline: none;
+    box-shadow: none;
+  }
+
+  input[type='range']::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    background: var(--color-primary);
+    cursor: pointer;
+    border-radius: var(--radius-round);
+    border: none;
+  }
+
+  input[type='range']::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    background: var(--color-primary);
+    cursor: pointer;
+    border-radius: var(--radius-round);
+    border: none;
+  }
+
+  input[type='range']::-moz-range-track {
+    background: transparent;
     border: none;
   }
 

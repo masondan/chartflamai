@@ -1036,6 +1036,11 @@
     outline: none;
   }
 
+  .style-slider:focus {
+    outline: none;
+    box-shadow: none;
+  }
+
   .style-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
