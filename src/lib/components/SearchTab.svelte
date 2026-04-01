@@ -7,6 +7,9 @@
   let chartTypeHint = $state('any');
   let explorerOpen = $state(true);
   let progressMessage = $state('');
+  let buttonMessage = $state('Find Stories');
+  let messageInterval: ReturnType<typeof setInterval> | null = null;
+  const loadingMessages = ['Searching for data', 'Selecting angles', 'Checking'];
 
   const chartTypeOptions = [
     { id: 'any', label: 'Any' },
@@ -20,7 +23,14 @@
 
     uiState.setLoading(true);
     aiState.setStep('loading');
-    progressMessage = 'Connecting...';
+    
+    // Start cycling through loading messages every 3 seconds
+    let messageIndex = 0;
+    buttonMessage = loadingMessages[messageIndex];
+    messageInterval = setInterval(() => {
+      messageIndex = (messageIndex + 1) % loadingMessages.length;
+      buttonMessage = loadingMessages[messageIndex];
+    }, 3000);
 
     try {
       const res = await fetch('/api/search', {
@@ -58,7 +68,7 @@
           try {
             const event = JSON.parse(match[1]);
             if (event.type === 'progress') {
-              progressMessage = event.message;
+              buttonMessage = event.message;
             } else if (event.type === 'result') {
               aiState.setResponse(event.data);
               explorerOpen = false;
@@ -73,8 +83,9 @@
     } catch (err) {
       aiState.setError(err instanceof Error ? err.message : 'An unexpected error occurred');
     } finally {
+      if (messageInterval) clearInterval(messageInterval);
       uiState.setLoading(false);
-      progressMessage = '';
+      buttonMessage = 'Find Stories';
     }
   }
 </script>
@@ -133,15 +144,14 @@
 
         <button
           class="submit-btn primary"
+          class:loading={uiState.value.isLoading}
           onclick={handleSubmit}
           disabled={!query.trim() || uiState.value.isLoading}
         >
           {#if uiState.value.isLoading}
             <span class="spinner"></span>
-            Searching...
-          {:else}
-            Chart it
           {/if}
+          {buttonMessage}
         </button>
       </div>
     {/if}
@@ -157,21 +167,13 @@
   {/if}
 
   {#if aiState.value.step === 'loading'}
-    <div class="loading-section">
-      {#if progressMessage}
-        <div class="progress-message">
-          <span class="spinner"></span>
-          <span>{progressMessage}</span>
+    <div class="loading-cards">
+      {#each Array(3) as _, i}
+        <div class="skeleton-card card">
+          <div class="skeleton-line wide"></div>
+          <div class="skeleton-line narrow"></div>
         </div>
-      {/if}
-      <div class="loading-cards">
-        {#each Array(3) as _, i}
-          <div class="skeleton-card card">
-            <div class="skeleton-line wide"></div>
-            <div class="skeleton-line narrow"></div>
-          </div>
-        {/each}
-      </div>
+      {/each}
     </div>
   {/if}
 
@@ -283,6 +285,12 @@
     font-weight: var(--font-weight-semibold);
   }
 
+  .submit-btn.loading {
+    background: var(--color-primary) !important;
+    color: var(--white);
+    border-color: var(--color-primary);
+  }
+
   .error-card {
     border-color: var(--color-error);
     text-align: center;
@@ -291,24 +299,6 @@
   .error-message {
     color: var(--color-error);
     font-weight: var(--font-weight-medium);
-  }
-
-  .loading-section {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-
-  .progress-message {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.625rem;
-    padding: 0.75rem;
-    font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-medium);
-    color: var(--color-primary);
-    animation: fadeIn var(--duration-normal) ease;
   }
 
   .loading-cards {

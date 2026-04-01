@@ -25,12 +25,13 @@
   // Waffle chart editor state
   let waffleOpen = $state(false);
 
-  const chartStarters: Array<{ type: ChartType; label: string; icon: string }> = [
-    { type: 'pie', label: 'Pie', icon: '/icons/icon-pie-chart.svg' },
-    { type: 'bar', label: 'Bar', icon: '/icons/icon-vertical-bars.svg' },
-    { type: 'line', label: 'Line', icon: '/icons/icon-line-chart.svg' },
-    { type: 'pie', label: 'Pictogram', icon: '/icons/icon-pictogram.svg' },
-    { type: 'pie', label: 'Waffle', icon: '/icons/icon-waffle.svg' }
+  const chartStarters: Array<{ type: ChartType; label: string; thumb: string }> = [
+    { type: 'pie', label: 'Pie', thumb: '/thumbs/preview-pie.png' },
+    { type: 'pie', label: 'Donut', thumb: '/thumbs/preview-donutpng.png' },
+    { type: 'bar', label: 'Bar', thumb: '/thumbs/preview-bar.png' },
+    { type: 'line', label: 'Line', thumb: '/thumbs/preview-line.png' },
+    { type: 'pie', label: 'Pictogram', thumb: '/thumbs/preview-picto.png' },
+    { type: 'pie', label: 'Waffle', thumb: '/thumbs/preview-waffle.png' }
   ];
 
   function parseCSV(raw: string): { labels: string[]; values: number[][]; seriesNames: string[] } | null {
@@ -208,7 +209,8 @@
           onclick={() => handleStartWithChart(starter)}
           title={starter.label}
         >
-          <img src={starter.icon} alt={starter.label} class="starter-icon" />
+          <img src={starter.thumb} alt={starter.label} class="starter-thumb" />
+          <span class="starter-label">{starter.label}</span>
         </button>
       {/each}
     </div>
@@ -377,35 +379,45 @@
 
   .starter-grid {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 0.75rem;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
   }
 
   .starter-btn {
     position: relative;
-    display: flex;
+    display: grid;
+    grid-template-rows: 1fr auto;
     align-items: center;
-    justify-content: center;
-    aspect-ratio: 1;
-    padding: 0.5rem;
+    justify-items: center;
+    padding: 0.75rem;
     background: var(--white);
-    border: 1.5px solid var(--color-primary);
+    border: 1px solid #9333ea;
     border-radius: var(--radius-lg);
     cursor: pointer;
     transition: all var(--duration-fast) ease;
     min-height: auto;
     min-width: auto;
+    gap: 0.5rem;
   }
 
   .starter-btn:hover {
     background: var(--color-highlight);
     box-shadow: var(--shadow-md);
+    border-color: #7c3aed;
   }
 
-  .starter-icon {
-    width: 48px;
-    height: 48px;
-    filter: brightness(0) saturate(100%) invert(15%) sepia(80%) saturate(4000%) hue-rotate(260deg);
+  .starter-thumb {
+    width: 100%;
+    height: auto;
+    border-radius: calc(var(--radius-lg) - 1px);
+    object-fit: cover;
+  }
+
+  .starter-label {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-dark);
+    text-align: center;
   }
 
   .error-card { border-color: var(--color-error); text-align: center; }
