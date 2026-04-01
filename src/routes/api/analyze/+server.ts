@@ -81,6 +81,7 @@ export const POST: RequestHandler = async ({ request, platform }) => {
           apiKey: geminiKey,
           systemPrompt,
           userMessage,
+          fileUri: body.fileUri,
           useSearch: isRestrictedMode ? false : useSearch
         });
 
@@ -99,6 +100,7 @@ export const POST: RequestHandler = async ({ request, platform }) => {
           apiKey: geminiKey,
           systemPrompt: systemPrompt + '\n\nCRITICAL: Return ONLY valid JSON. No markdown, no explanation. Just the JSON object.',
           userMessage,
+          fileUri: body.fileUri,
           useSearch: isRestrictedMode ? false : useSearch
         });
 
