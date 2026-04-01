@@ -43,56 +43,24 @@ function classifyLine(line: string): LineType {
 	return 'body';
 }
 
-export function truncateForLLM(fullText: string, maxChars: number = 24000): string {
+export function truncateForLLM(fullText: string, maxChars: number = 100000): string {
+	// For restrict-to-source mode, we need the full document to avoid gaps
+	// that would trigger LLM to use training data. Only truncate if absolutely necessary.
 	if (fullText.length <= maxChars) return fullText;
 
+	// If we must truncate, do it more gently - keep order instead of reprioritizing
+	// This preserves narrative flow and context
 	const lines = fullText.split('\n');
-
-	const tables: string[] = [];
-	const headings: string[] = [];
-	const lists: string[] = [];
-	const body: string[] = [];
-
-	for (let i = 0; i < lines.length; i++) {
-		const type = classifyLine(lines[i]);
-		switch (type) {
-			case 'table':
-				tables.push(lines[i]);
-				break;
-			case 'heading': {
-				headings.push(lines[i]);
-				const next = lines[i + 1];
-				if (next !== undefined && classifyLine(next) === 'body' && next.trim()) {
-					headings.push(next);
-					i++;
-				}
-				break;
-			}
-			case 'list':
-				lists.push(lines[i]);
-				break;
-			default:
-				body.push(lines[i]);
-				break;
-		}
-	}
-
-	const prioritised = [...tables, ...headings, ...lists, ...body];
 	let output = '';
-	let truncated = false;
 
-	for (const line of prioritised) {
+	for (const line of lines) {
 		const addition = output ? '\n' + line : line;
 		if (output.length + addition.length > maxChars) {
-			truncated = true;
 			break;
 		}
 		output += addition;
 	}
 
-	if (truncated) {
-		output += '\n[Document truncated. Showing prioritised content.]';
-	}
-
+	// Don't advertise truncation - it encourages Gemini to hallucinate
 	return output;
 }

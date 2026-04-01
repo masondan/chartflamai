@@ -64,11 +64,39 @@
     summaryText = '';
 
     try {
+      // Extract text for summary
+      console.log('Extracting PDF text...');
       const rawText = await extractPdfText(file);
+      console.log('PDF extracted, length:', rawText.length);
       const truncated = truncateForLLM(rawText);
-      aiState.value.extractedText = truncated;
+      console.log('Truncated to:', truncated.length);
 
-      // Call summarize API
+      // Upload file to Gemini Files API for native processing
+      console.log('Uploading file to Gemini...');
+      const uploadFormData = new FormData();
+      uploadFormData.append('file', file);
+
+      const uploadRes = await fetch('/api/upload-file', {
+        method: 'POST',
+        body: uploadFormData
+      });
+
+      if (!uploadRes.ok) {
+        const errText = await uploadRes.text().catch(() => '');
+        console.error('Upload response error:', uploadRes.status, errText);
+        throw new Error('Failed to upload file to AI service');
+      }
+
+      const uploadData = await uploadRes.json();
+      console.log('File uploaded, URI:', uploadData.fileUri);
+      const { fileUri } = uploadData;
+      aiState.value.fileUri = fileUri;
+      aiState.value.extractedText = truncated;
+      aiState.value.sourceFile = file;
+      aiState.value.sourceType = 'pdf';
+
+      // Call summarize API with extracted text
+      console.log('Calling summarize API...');
       const res = await fetch('/api/summarize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -76,15 +104,23 @@
       });
 
       if (!res.ok) {
-        throw new Error('Failed to generate summary');
+        const errText = await res.text().catch(() => '');
+        console.error('Summarize response error:', res.status, errText);
+        const errData = (() => {
+          try { return JSON.parse(errText); } catch { return {}; }
+        })();
+        throw new Error(errData.message || 'Failed to generate summary');
       }
 
       const data = await res.json();
+      console.log('Summary received');
       summaryText = data.summary || 'No summary available.';
       sourceOpen = false;
       summaryOpen = true;
       explorerOpen = false;
+      summaryError = '';
     } catch (err) {
+      console.error('PDF handling error:', err);
       summaryError = err instanceof Error ? err.message : 'Failed to extract and summarise document.';
       summaryText = '';
     } finally {
@@ -206,6 +242,7 @@
         body: JSON.stringify({
           mode: 'source',
           extractedText: aiState.value.extractedText,
+          fileUri: aiState.value.fileUri,
           query: suggestAngles ? '' : query.trim(),
           scope: scope === 'restrict' ? 'restrict-to-source' : 'search-widely',
           sourceType: aiState.value.sourceType,

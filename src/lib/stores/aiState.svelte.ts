@@ -39,6 +39,7 @@ interface AiState {
   sourceFile: File | null;
   sourceUrl: string;
   extractedText: string;
+  fileUri?: string;
   apiResponse: ApiResponse | null;
   angleChartTypes: Record<string, ChartType>;
   error: { message: string; code?: string; retryable: boolean } | null;

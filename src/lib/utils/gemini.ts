@@ -7,6 +7,7 @@ interface GeminiOptions {
   apiKey: string;
   systemPrompt: string;
   userMessage: string;
+  fileUri?: string;
   useSearch?: boolean;
   temperature?: number;
   maxOutputTokens?: number;
@@ -17,13 +18,28 @@ export async function callGemini(options: GeminiOptions): Promise<unknown> {
     apiKey,
     systemPrompt,
     userMessage,
+    fileUri,
     useSearch = false,
     temperature = 0.3,
     maxOutputTokens = 4000
   } = options;
 
+  // Build message parts: file (if provided) + text
+  const parts: Record<string, unknown>[] = [];
+  
+  if (fileUri) {
+    parts.push({
+      fileData: {
+        mimeType: 'application/pdf',
+        fileUri
+      }
+    });
+  }
+  
+  parts.push({ text: userMessage });
+
   const body: Record<string, unknown> = {
-    contents: [{ role: 'user', parts: [{ text: userMessage }] }],
+    contents: [{ role: 'user', parts }],
     generationConfig: {
       temperature,
       maxOutputTokens

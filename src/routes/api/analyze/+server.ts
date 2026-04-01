@@ -13,7 +13,8 @@ export const POST: RequestHandler = async ({ request, platform }) => {
 
   let body: {
     mode: 'source' | 'paste';
-    extractedText: string;
+    extractedText?: string;
+    fileUri?: string;
     query?: string;
     scope?: string;
     sourceType?: string;
@@ -27,7 +28,7 @@ export const POST: RequestHandler = async ({ request, platform }) => {
     return error(400, 'Invalid request body');
   }
 
-  if (!body.extractedText?.trim()) {
+  if (!body.extractedText?.trim() && !body.fileUri?.trim()) {
     return error(400, 'No data provided');
   }
 
@@ -54,14 +55,27 @@ export const POST: RequestHandler = async ({ request, platform }) => {
             ? `JOURNALIST'S QUESTION: ${body.query}\n\n### PASTED DATA:\n${body.extractedText}`
             : `Suggest 3 data-driven story angles from this data.\n\n### PASTED DATA:\n${body.extractedText}`;
         } else {
-          systemPrompt = getSourceSystemPrompt(
-            body.scope || 'restrict-to-source',
-            body.audience || ''
-          );
-          userMessage = body.query
-            ? `JOURNALIST'S QUESTION: ${body.query}\n\n### SOURCE DOCUMENT:\n${body.extractedText}`
-            : `Suggest 3 data-driven story angles from this source.\n\n### SOURCE DOCUMENT:\n${body.extractedText}`;
-        }
+           systemPrompt = getSourceSystemPrompt(
+             body.scope || 'restrict-to-source',
+             body.audience || ''
+           );
+           
+           const isRestricted = (body.scope || 'restrict-to-source') === 'restrict-to-source';
+           const restrictionNote = isRestricted
+             ? '\n\nIMPORTANT: The document below is your ONLY source of data. Do not use any external information.'
+             : '\n\nYou may supplement this with targeted web searches if needed.';
+           
+           // Use file URI if available (native PDF), otherwise use extracted text
+           if (body.fileUri) {
+             userMessage = body.query
+               ? `JOURNALIST'S QUESTION: ${body.query}${restrictionNote}`
+               : `Suggest 3 data-driven story angles from this source.${restrictionNote}`;
+           } else {
+             userMessage = body.query
+               ? `JOURNALIST'S QUESTION: ${body.query}\n\n### SOURCE DOCUMENT:\n${body.extractedText}${restrictionNote}`
+               : `Suggest 3 data-driven story angles from this source.\n\n### SOURCE DOCUMENT:\n${body.extractedText}${restrictionNote}`;
+           }
+         }
 
         const result = await callGemini({
           apiKey: geminiKey,

@@ -67,18 +67,27 @@ ${JSON_RULES}`;
 }
 
 export function getSourceSystemPrompt(scope: string, audience: string): string {
-  const useSearch = scope === 'search-widely';
-  const scopeInstruction = useSearch
-    ? 'Search the web for additional data and context to supplement the source document.'
-    : `CRITICAL: You MUST analyse ONLY the data provided in the SOURCE DOCUMENT. 
-Do NOT invent, infer, or supplement data from other sources, websites, or external knowledge.
-If a story angle cannot be supported by the exact numbers and facts in the provided document, do NOT include it.
-Every data point in your angles MUST be traceable to the source document.`;
+  const isRestricted = scope === 'restrict-to-source';
+  
+  if (isRestricted) {
+    return `You are a Senior Data Journalist AI.
 
-  return `You are a Senior Data Journalist AI analysing a source document for a journalist.
+CRITICAL CONSTRAINT: You have been given a SOURCE DOCUMENT. This is your ONLY source of information.
+
+**YOU MUST:**
+- Analyse ONLY the data present in the provided source document
+- Ignore all external knowledge, training data, and web information
+- Create story angles based exclusively on numbers and facts in the source
+- Cite exact figures and statistics directly from the source
+- If you cannot find supporting data in the source, do NOT create that angle
+
+**YOU MUST NOT:**
+- Invent or infer data not explicitly in the source
+- Reference external sources, websites, or general knowledge
+- Fill gaps with assumptions or contextual knowledge
+- Supplement the source document with outside information
 
 JOURNALIST'S AUDIENCE: ${audience || 'General news audience'}
-DATA SCOPE: ${scopeInstruction}
 
 ${EDITORIAL_STANDARDS}
 
@@ -87,6 +96,21 @@ Return ONLY a JSON object matching this exact structure:
 ${JSON_SCHEMA}
 
 ${JSON_RULES}`;
+  } else {
+    return `You are a Senior Data Journalist AI analysing a source document for a journalist.
+
+DATA SCOPE: Use the source document as your primary reference. You may search the web for additional, targeted data to supplement and contextualise the source material. Always prioritise data from the source document.
+
+JOURNALIST'S AUDIENCE: ${audience || 'General news audience'}
+
+${EDITORIAL_STANDARDS}
+
+### OUTPUT FORMAT:
+Return ONLY a JSON object matching this exact structure:
+${JSON_SCHEMA}
+
+${JSON_RULES}`;
+  }
 }
 
 export function getPasteSystemPrompt(): string {
