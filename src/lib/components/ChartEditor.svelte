@@ -1454,13 +1454,18 @@
     height: 32px;
     padding: 0;
     background: none;
-    border: 1px solid var(--color-border);
+    border: none;
     border-radius: var(--radius-sm);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    opacity: 0.4;
+  }
+
+  .row-delete:hover {
+    opacity: 1;
   }
 
   .add-row-btn {

@@ -14,7 +14,7 @@
   let waffleData = $state<Array<{ label: string; value: number; color: string }>>([
     { label: 'Category A', value: 40, color: '#6A5ACD' },
     { label: 'Category B', value: 35, color: '#FFDAB9' },
-    { label: 'Category C', value: 15, color: '#66C0B4' }
+    { label: 'Category C', value: 25, color: '#66C0B4' }
   ]);
 
   let gridCols = $state(10);
@@ -1081,17 +1081,18 @@
   }
 
   .csv-input {
-    padding: 0.5rem;
+    padding: 0.625rem 0.625rem 1rem 0.625rem;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
-    font-family: 'Inter', monospace;
-    font-size: var(--font-size-sm);
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
     background: white;
     color: var(--text-dark);
     resize: vertical;
   }
 
   .csv-input::placeholder {
+    font-size: var(--font-size-base);
     color: #999999;
     opacity: 1;
   }
@@ -1139,8 +1140,15 @@
     padding: 0.375rem 0.5rem;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
-    font-size: 0.85rem;
+    font-size: var(--font-size-sm);
     background: white;
+    -moz-appearance: textfield;
+  }
+
+  .value-input::-webkit-outer-spin-button,
+  .value-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
   }
 
   .label-input::placeholder,
@@ -1247,41 +1255,50 @@
   }
 
   .bg-option {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: var(--radius-round);
+    cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    height: 40px;
-    padding: 0;
-    background: white;
-    border: 1.5px solid var(--color-border);
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    min-height: 40px;
-    min-width: 40px;
+    transition: all var(--duration-fast) ease;
   }
 
   .bg-option.active {
-    border-color: var(--color-primary);
+    border: 2px solid var(--color-primary);
   }
 
   .bg-circle {
     width: 24px;
     height: 24px;
-    border-radius: 50%;
-    border: 2px solid #ccc;
+    border-radius: var(--radius-round);
   }
 
-  .bg-white {
-    background: white;
+  .bg-circle.bg-white {
+    background: #FFFFFF;
+    border: 1px solid #e0e0e0;
   }
 
-  .bg-transparent {
-    background: repeating-linear-gradient(45deg, #ddd 0, #ddd 2px, white 2px, white 4px);
+  .bg-circle.bg-transparent {
+    background-color: #fff !important;
+    background-image:
+      linear-gradient(45deg, #ccc 25%, transparent 25%),
+      linear-gradient(-45deg, #ccc 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #ccc 75%),
+      linear-gradient(-45deg, transparent 75%, #ccc 75%) !important;
+    background-size: 6px 6px !important;
+    background-position: 0 0, 0 3px, 3px -3px, -3px 0px !important;
   }
 
-  .bg-rainbow {
-    background: linear-gradient(135deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff);
+  .bg-circle.bg-rainbow {
+    background-image: conic-gradient(
+      red, yellow, lime, aqua, blue, magenta, red
+    ) !important;
+    background-color: transparent !important;
   }
 
   .visually-hidden {

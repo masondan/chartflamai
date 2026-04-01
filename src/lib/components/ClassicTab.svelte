@@ -148,10 +148,10 @@
     {#if dataOpen}
       <div class="data-body">
         <textarea
-          bind:value={csvData}
-          placeholder={"eg.\nJan,12\nFeb,16\nMar,22\nApril,19"}
-          rows="5"
-        ></textarea>
+           bind:value={csvData}
+           placeholder={"Label,Value\nItem 1,25\nItem 2,35\nItem 3,20"}
+           rows="4"
+         ></textarea>
 
         <button
           class="submit-btn primary"
@@ -293,7 +293,7 @@
     min-height: 120px;
     font-family: 'Inter', monospace;
     font-size: var(--font-size-sm);
-    line-height: var(--line-height-relaxed);
+    line-height: var(--line-height-normal);
   }
 
   .submit-btn {
