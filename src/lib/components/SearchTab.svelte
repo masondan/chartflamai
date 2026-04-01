@@ -18,8 +18,24 @@
     { id: 'line', label: 'Line' }
   ];
 
+  // Register callbacks to close explorer when stories or drawers are opened
+  $effect(() => {
+    uiState.setAngleToggleCallback((angleId) => {
+      if (angleId) {
+        explorerOpen = false;
+      }
+    });
+    uiState.setDrawerOpenCallback(() => {
+      explorerOpen = false;
+    });
+  });
+
   function toggleExplorer() {
     explorerOpen = !explorerOpen;
+    // Close any expanded stories when opening explorer
+    if (explorerOpen) {
+      uiState.expandAngle(null as any);
+    }
   }
 
   async function handleSubmit() {

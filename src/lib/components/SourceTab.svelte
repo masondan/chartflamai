@@ -36,7 +36,19 @@
     { id: 'line', label: 'Line' }
   ];
 
-  function closeOtherAccordions(openSection: 'source' | 'summary' | 'explorer') {
+  // Register callbacks to close other accordions when stories or drawers are opened
+  $effect(() => {
+    uiState.setAngleToggleCallback((angleId) => {
+      if (angleId) {
+        closeOtherAccordions('');
+      }
+    });
+    uiState.setDrawerOpenCallback(() => {
+      closeOtherAccordions('');
+    });
+  });
+
+  function closeOtherAccordions(openSection: 'source' | 'summary' | 'explorer' | '') {
     if (openSection !== 'source') sourceOpen = false;
     if (openSection !== 'summary') summaryOpen = false;
     if (openSection !== 'explorer') explorerOpen = false;

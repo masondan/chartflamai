@@ -7,6 +7,8 @@ interface UiState {
   expandedAngleId: string | null;
   activeDrawer: 'sources' | 'data' | 'explain' | null;
   activeDrawerAngleId: string | null;
+  onAngleToggle?: (angleId: string) => void;
+  onDrawerOpen?: () => void;
 }
 
 function createUiState() {
@@ -27,6 +29,7 @@ function createUiState() {
     setLoading(loading: boolean) { state.isLoading = loading; },
     toggleAngle(angleId: string) {
       state.expandedAngleId = state.expandedAngleId === angleId ? null : angleId;
+      state.onAngleToggle?.(angleId);
     },
     expandAngle(angleId: string) {
       state.expandedAngleId = angleId;
@@ -34,10 +37,17 @@ function createUiState() {
     openDrawer(drawer: NonNullable<UiState['activeDrawer']>, angleId: string) {
       state.activeDrawer = drawer;
       state.activeDrawerAngleId = angleId;
+      state.onDrawerOpen?.();
     },
     closeDrawer() {
       state.activeDrawer = null;
       state.activeDrawerAngleId = null;
+    },
+    setAngleToggleCallback(callback: (angleId: string) => void) {
+      state.onAngleToggle = callback;
+    },
+    setDrawerOpenCallback(callback: () => void) {
+      state.onDrawerOpen = callback;
     }
   };
 }

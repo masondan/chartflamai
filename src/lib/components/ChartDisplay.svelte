@@ -99,6 +99,24 @@
         line: { tension: 0.3, borderWidth: 2.5 },
         point: { radius: 3, hoverRadius: 5, borderWidth: 2, backgroundColor: '#fff' }
       };
+      // Override legend to show solid filled circle for line charts
+      base.plugins.legend.labels = {
+        ...base.plugins.legend.labels,
+        usePointStyle: true,
+        pointStyle: 'circle',
+        generateLabels(chart: any) {
+          const { data, options } = chart;
+          return data.datasets.map((dataset: any, i: number) => ({
+            text: dataset.label || '',
+            fillStyle: dataset.borderColor || 'rgba(0,0,0,0.1)',
+            strokeStyle: dataset.borderColor || 'rgba(0,0,0,0.1)',
+            lineWidth: 0,
+            hidden: !chart.isDatasetVisible(i),
+            index: i,
+            pointStyle: 'circle'
+          }));
+        }
+      };
     }
 
     if (type === 'bar' || type === 'groupedBar' || type === 'stackedBar') {

@@ -1,14 +1,22 @@
 <script lang="ts">
   import { uiState } from '$lib/stores/uiState.svelte';
   import { aiState } from '$lib/stores/aiState.svelte';
+  import { chartArchive } from '$lib/stores/chartArchive.svelte';
   import BottomDrawer from './BottomDrawer.svelte';
   import type { AngleData } from '$lib/stores/aiState.svelte';
 
-  let currentAngle = $derived<AngleData | undefined>(
-    aiState.value.apiResponse?.angles.find(
-      a => a.id === uiState.value.activeDrawerAngleId
-    )
-  );
+  let currentAngle = $derived.by<AngleData | undefined>(() => {
+    const angleId = uiState.value.activeDrawerAngleId;
+    if (!angleId) return undefined;
+    
+    // First check API response angles
+    const apiAngle = aiState.value.apiResponse?.angles.find(a => a.id === angleId);
+    if (apiAngle) return apiAngle;
+    
+    // Then check archived stories
+    const archivedStory = chartArchive.stories.find(s => s.data.id === angleId);
+    return archivedStory?.data;
+  });
 
   let drawerTitle = $derived(
     uiState.value.activeDrawer === 'sources' ? 'Sources' :

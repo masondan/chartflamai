@@ -495,7 +495,7 @@
         chartTitle, titleFont, titleAlign, titleBold, titleItalic, titleSize, titleLineHeight, titleColor,
         chartCaption, captionFont, captionAlign, captionBold, captionItalic, captionSize, captionLineHeight, captionColor
       };
-      currentArchiveId = chartArchive.save('pictogram', config, thumb, currentArchiveId);
+      currentArchiveId = chartArchive.saveChart('pictogram', config, thumb, currentArchiveId);
     }, 800);
 
     return () => clearTimeout(saveTimer);

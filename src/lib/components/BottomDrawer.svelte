@@ -10,6 +10,7 @@
   let { title, children }: Props = $props();
 
   let isOpen = $derived(uiState.value.activeDrawer !== null);
+  let showToast = $state(false);
 
   function close() {
     uiState.closeDrawer();
@@ -26,6 +27,31 @@
   async function handleCopy() {
     const content = document.querySelector('.drawer-content')?.textContent || '';
     await navigator.clipboard.writeText(content);
+    showToast = true;
+    setTimeout(() => {
+      showToast = false;
+    }, 2000);
+  }
+
+  async function handleShare() {
+    const content = document.querySelector('.drawer-content')?.textContent || '';
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: title,
+          text: content
+        });
+      } catch (err) {
+        console.log('Share failed:', err);
+      }
+    } else {
+      // Fallback for browsers that don't support share API
+      await navigator.clipboard.writeText(content);
+      showToast = true;
+      setTimeout(() => {
+        showToast = false;
+      }, 2000);
+    }
   }
 </script>
 
@@ -49,16 +75,20 @@
       </div>
 
       <div class="drawer-footer">
-        <button class="footer-btn" onclick={handleCopy} title="Copy">
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-            <rect x="6" y="6" width="10" height="10" rx="2" stroke="currentColor" stroke-width="1.5"/>
-            <path d="M12 6V4a2 2 0 00-2-2H4a2 2 0 00-2 2v6a2 2 0 002 2h2" stroke="currentColor" stroke-width="1.5"/>
-          </svg>
-        </button>
-        <button class="footer-btn" title="Share">
-          <img src="/icons/icon-share.svg" alt="Share" width="18" height="18" />
-        </button>
-      </div>
+         <button class="footer-btn" onclick={handleCopy} title="Copy">
+           <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+             <rect x="6" y="6" width="10" height="10" rx="2" stroke="currentColor" stroke-width="1.5"/>
+             <path d="M12 6V4a2 2 0 00-2-2H4a2 2 0 00-2 2v6a2 2 0 002 2h2" stroke="currentColor" stroke-width="1.5"/>
+           </svg>
+         </button>
+         <button class="footer-btn" onclick={handleShare} title="Share">
+           <img src="/icons/icon-share.svg" alt="Share" width="18" height="18" />
+         </button>
+       </div>
+
+       {#if showToast}
+         <div class="toast">Copied</div>
+       {/if}
     </div>
   </div>
 {/if}
@@ -149,20 +179,41 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    height: 40px;
+    width: 48px;
+    height: 48px;
     padding: 0;
     background: none;
     border: none;
     border-radius: var(--radius-round);
     cursor: pointer;
-    color: var(--text-medium);
-    min-height: 40px;
-    min-width: 40px;
+    color: var(--text-dark);
+    min-height: 48px;
+    min-width: 48px;
+    transition: transform 0.2s ease, filter 0.2s ease;
+  }
+
+  .footer-btn img {
+    opacity: 1;
   }
 
   .footer-btn:hover {
-    background: var(--bg-light);
+    transform: scale(1.1);
+    filter: hue-rotate(280deg) brightness(0.8);
+  }
+
+  .toast {
+    position: fixed;
+    top: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--color-highlight, #f3e8ff);
+    color: var(--color-primary, #7c3aed);
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    animation: slideDown 0.3s ease-out;
+    z-index: calc(var(--z-modal) + 1);
   }
 
   @keyframes fadeIn {
@@ -173,5 +224,10 @@
   @keyframes slideDrawerUp {
     from { transform: translateY(100%); }
     to { transform: translateY(0); }
+  }
+
+  @keyframes slideDown {
+    from { transform: translateX(-50%) translateY(-1rem); opacity: 0; }
+    to { transform: translateX(-50%) translateY(0); opacity: 1; }
   }
 </style>

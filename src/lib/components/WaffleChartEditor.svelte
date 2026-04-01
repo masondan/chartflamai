@@ -493,7 +493,7 @@
         chartCaption, captionFont, captionAlign, captionBold, captionItalic, captionSize, captionLineHeight, captionColor,
         legendVisible, legendPosition, legendSize, legendColor
       };
-      currentArchiveId = chartArchive.save('waffle', config, thumb, currentArchiveId);
+      currentArchiveId = chartArchive.saveChart('waffle', config, thumb, currentArchiveId);
     }, 800);
 
     return () => clearTimeout(saveTimer);

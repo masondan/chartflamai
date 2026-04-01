@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { chartArchive, type ArchivedChart } from '$lib/stores/chartArchive.svelte';
+  import { chartArchive, type ArchivedChart, type ArchivedStory } from '$lib/stores/chartArchive.svelte';
+  import ArchivedStoryCard from './ArchivedStoryCard.svelte';
 
   interface Props {
     onclose: () => void;
@@ -8,6 +9,7 @@
 
   let { onclose, onedit }: Props = $props();
 
+  let activeTab = $state<'charts' | 'stories'>('charts');
   let selected = $state<Set<string>>(new Set());
   let selectionMode = $state(false);
 
@@ -33,9 +35,9 @@
   function handleEdit() {
     if (!singleSelection) return;
     const id = [...selected][0];
-    const chart = chartArchive.getById(id);
+    const chart = chartArchive.getChartById(id);
     if (chart) {
-      chartArchive.touch(id);
+      chartArchive.touchChart(id);
       onedit(chart);
     }
   }
@@ -43,7 +45,7 @@
   function handleCopy() {
     if (!singleSelection) return;
     const id = [...selected][0];
-    chartArchive.duplicate(id);
+    chartArchive.duplicateChart(id);
     selected = new Set();
     selectionMode = false;
   }
@@ -51,7 +53,7 @@
   function handleDownload() {
     if (!singleSelection) return;
     const id = [...selected][0];
-    const chart = chartArchive.getById(id);
+    const chart = chartArchive.getChartById(id);
     if (!chart) return;
 
     const link = document.createElement('a');
@@ -62,7 +64,7 @@
 
   function handleDelete() {
     if (!hasSelection) return;
-    chartArchive.remove([...selected]);
+    chartArchive.removeCharts([...selected]);
     selected = new Set();
     selectionMode = false;
   }
@@ -76,91 +78,125 @@
 
 <div class="saved-overlay">
   <div class="saved-panel">
-    <!-- Header -->
-    <div class="saved-header">
-      <button class="close-btn" onclick={onclose} aria-label="Close">
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-          <path d="M4.5 4.5l9 9M13.5 4.5l-9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-        </svg>
-      </button>
-      <h1 class="saved-title">Saved charts</h1>
-      <div class="header-spacer"></div>
-    </div>
+    <!-- Header with Tabs -->
+     <div class="saved-header">
+       <button class="close-btn" onclick={onclose} aria-label="Close">
+         <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+           <path d="M4.5 4.5l9 9M13.5 4.5l-9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+         </svg>
+       </button>
+       <div class="header-tabs">
+         <button
+           class="header-tab-btn"
+           class:active={activeTab === 'charts'}
+           onclick={() => { activeTab = 'charts'; selected = new Set(); selectionMode = false; }}
+         >
+           Charts
+         </button>
+         <button
+           class="header-tab-btn"
+           class:active={activeTab === 'stories'}
+           onclick={() => { activeTab = 'stories'; selected = new Set(); selectionMode = false; }}
+         >
+           Stories
+         </button>
+       </div>
+       <div class="header-spacer"></div>
+     </div>
 
-    <!-- Toolbar -->
-    <div class="toolbar">
-      <button
-        class="toolbar-btn"
-        class:active={hasSelection && singleSelection}
-        disabled={!hasSelection || !singleSelection}
-        onclick={handleEdit}
-        title="Edit"
-        aria-label="Edit"
-      >
-        <img src="/icons/icon-edit-fill.svg" alt="" width="20" height="20" />
-      </button>
-      <button
-        class="toolbar-btn"
-        class:active={hasSelection && singleSelection}
-        disabled={!hasSelection || !singleSelection}
-        onclick={handleCopy}
-        title="Copy"
-        aria-label="Copy"
-      >
-        <img src="/icons/icon-copy.svg" alt="" width="20" height="20" />
-      </button>
-      <button
-        class="toolbar-btn"
-        class:active={hasSelection && singleSelection}
-        disabled={!hasSelection || !singleSelection}
-        onclick={handleDownload}
-        title="Download"
-        aria-label="Download"
-      >
-        <img src="/icons/icon-download.svg" alt="" width="20" height="20" />
-      </button>
-      <button
-        class="toolbar-btn"
-        class:active={hasSelection}
-        disabled={!hasSelection}
-        onclick={handleDelete}
-        title="Delete"
-        aria-label="Delete"
-      >
-        <img src="/icons/icon-trash.svg" alt="" width="20" height="20" />
-      </button>
-    </div>
+    <!-- Toolbar (Charts only) -->
+    {#if activeTab === 'charts'}
+      <div class="toolbar">
+        <button
+          class="toolbar-btn"
+          class:active={hasSelection && singleSelection}
+          disabled={!hasSelection || !singleSelection}
+          onclick={handleEdit}
+          title="Edit"
+          aria-label="Edit"
+        >
+          <img src="/icons/icon-edit-fill.svg" alt="" width="20" height="20" />
+        </button>
+        <button
+          class="toolbar-btn"
+          class:active={hasSelection && singleSelection}
+          disabled={!hasSelection || !singleSelection}
+          onclick={handleCopy}
+          title="Copy"
+          aria-label="Copy"
+        >
+          <img src="/icons/icon-copy.svg" alt="" width="20" height="20" />
+        </button>
+        <button
+          class="toolbar-btn"
+          class:active={hasSelection && singleSelection}
+          disabled={!hasSelection || !singleSelection}
+          onclick={handleDownload}
+          title="Download"
+          aria-label="Download"
+        >
+          <img src="/icons/icon-download.svg" alt="" width="20" height="20" />
+        </button>
+        <button
+          class="toolbar-btn"
+          class:active={hasSelection}
+          disabled={!hasSelection}
+          onclick={handleDelete}
+          title="Delete"
+          aria-label="Delete"
+        >
+          <img src="/icons/icon-trash.svg" alt="" width="20" height="20" />
+        </button>
+      </div>
+    {/if}
 
-    <!-- Grid -->
-    <div class="chart-grid">
-      {#if chartArchive.charts.length === 0}
-        <div class="empty-state">
-          <p>No saved charts yet</p>
-          <p class="empty-hint">Charts will appear here automatically as you create them</p>
-        </div>
-      {:else}
-        {#each chartArchive.charts.toReversed() as chart (chart.id)}
-          <button
-            class="grid-item"
-            class:selected={selected.has(chart.id)}
-            onclick={() => toggleSelect(chart.id)}
-            aria-label="Select chart"
-          >
-            <img src={chart.thumbnail} alt="" class="grid-thumbnail" />
-            <!-- Checkmark overlay -->
-            {#if selectionMode}
-              <div class="check-circle" class:checked={selected.has(chart.id)}>
-                {#if selected.has(chart.id)}
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                    <path d="M3 7l3 3 5-5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                {/if}
-              </div>
-            {/if}
-          </button>
-        {/each}
-      {/if}
-    </div>
+    <!-- Content -->
+    {#if activeTab === 'charts'}
+      <!-- Charts Grid -->
+      <div class="chart-grid">
+        {#if chartArchive.charts.length === 0}
+          <div class="empty-state">
+            <p>No saved charts yet</p>
+            <p class="empty-hint">Charts will appear here automatically as you create them</p>
+          </div>
+        {:else}
+          {#each chartArchive.charts.toReversed() as chart (chart.id)}
+            <button
+              class="grid-item"
+              class:selected={selected.has(chart.id)}
+              onclick={() => toggleSelect(chart.id)}
+              aria-label="Select chart"
+            >
+              <img src={chart.thumbnail} alt="" class="grid-thumbnail" />
+              <!-- Checkmark overlay -->
+              {#if selectionMode}
+                <div class="check-circle" class:checked={selected.has(chart.id)}>
+                  {#if selected.has(chart.id)}
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                      <path d="M3 7l3 3 5-5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  {/if}
+                </div>
+              {/if}
+            </button>
+          {/each}
+        {/if}
+      </div>
+    {:else}
+      <!-- Stories List -->
+      <div class="stories-list">
+        {#if chartArchive.stories.length === 0}
+          <div class="empty-state">
+            <p>No archived stories yet</p>
+            <p class="empty-hint">Stories will appear here when you archive them</p>
+          </div>
+        {:else}
+          {#each chartArchive.stories.toReversed() as story (story.id)}
+            <ArchivedStoryCard {story} />
+          {/each}
+        {/if}
+      </div>
+    {/if}
   </div>
 </div>
 
@@ -184,46 +220,70 @@
   .saved-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 0.75rem 1rem;
+    justify-content: center;
+    gap: 1rem;
+    padding: 1rem;
     border-bottom: 1px solid var(--color-border);
     position: sticky;
     top: 0;
     background: var(--white);
     z-index: 10;
+    flex-wrap: wrap;
   }
 
   .close-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     padding: 0;
     background: none;
     border: none;
     border-radius: var(--radius-round);
     cursor: pointer;
     color: var(--text-dark);
-    min-height: 36px;
-    min-width: 36px;
+    min-height: 32px;
+    min-width: 32px;
+    flex-shrink: 0;
   }
 
   .close-btn:hover {
     background: var(--bg-light);
   }
 
-  .saved-title {
-    margin: 0;
+  .header-tabs {
+    display: flex;
+    gap: 2rem;
+    flex: 1;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .header-tab-btn {
+    background: none;
+    border: none;
     font-size: 1rem;
     font-weight: 600;
-    color: var(--text-dark);
-    text-align: center;
-    flex: 1;
+    cursor: pointer;
+    color: #777777;
+    transition: color var(--duration-fast) ease;
+    padding: 0;
+    min-height: auto;
+    min-width: auto;
+  }
+
+  .header-tab-btn.active {
+    color: var(--color-primary);
+  }
+
+  .header-tab-btn:hover:not(.active) {
+    color: #999999;
   }
 
   .header-spacer {
-    width: 36px;
+    width: 32px;
+    flex-shrink: 0;
   }
 
   /* Toolbar — 4 equally spaced outline purple buttons */
@@ -345,5 +405,14 @@
     margin-top: 0.5rem !important;
     color: var(--text-medium);
     font-weight: 400 !important;
+  }
+
+  /* Stories List */
+  .stories-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1rem;
+    padding-bottom: 2rem;
   }
 </style>

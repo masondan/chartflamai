@@ -1,48 +1,33 @@
 <script lang="ts">
-  import { aiState } from '$lib/stores/aiState.svelte';
   import { uiState } from '$lib/stores/uiState.svelte';
-  import { chartArchive } from '$lib/stores/chartArchive.svelte';
+  import { aiState } from '$lib/stores/aiState.svelte';
+  import { chartArchive, type ArchivedStory } from '$lib/stores/chartArchive.svelte';
   import ChartDisplay from './ChartDisplay.svelte';
-  import ChartEditor from './ChartEditor.svelte';
   import ChartTypeBar from './ChartTypeBar.svelte';
-  import type { AngleData } from '$lib/stores/aiState.svelte';
   import type { ChartType } from '$lib/config/design';
 
   interface Props {
-    angle: AngleData;
-    storyNumber?: number;
+    story: ArchivedStory;
   }
 
-  let { angle, storyNumber = 1 }: Props = $props();
+  let { story }: Props = $props();
 
-  let isExpanded = $derived(uiState.value.expandedAngleId === angle.id);
+  let isExpanded = $state(false);
   let currentChartType = $derived(
-    (aiState.value.angleChartTypes[angle.id] as ChartType) || angle.suggestedChartType
+    (aiState.value.angleChartTypes[story.data.id] as ChartType) || story.data.suggestedChartType
   );
-  let isArchived = $derived(chartArchive.isStoryArchived(angle.id));
 
   let editorOpen = $state(false);
 
-  function handleToggleAngle() {
-    uiState.toggleAngle(angle.id);
-  }
-
-  function handleToggleArchive(e: MouseEvent) {
-    e.stopPropagation();
-    if (isArchived) {
-      // Remove from archive
-      const storiesToRemove = chartArchive.stories.filter(s => s.data.id === angle.id).map(s => s.id);
-      if (storiesToRemove.length > 0) {
-        chartArchive.removeStories(storiesToRemove);
-      }
-    } else {
-      // Add to archive
-      chartArchive.saveStory(angle);
+  function handleToggle() {
+    isExpanded = !isExpanded;
+    if (isExpanded) {
+      chartArchive.touchStory(story.id);
     }
   }
 
   function getAngleCsv(): string {
-    const { labels, datasets } = angle.data;
+    const { labels, datasets } = story.data.data;
     if (datasets.length === 1) {
       return labels.map((l, i) => `${l},${datasets[0].data[i]}`).join('\n');
     }
@@ -52,19 +37,22 @@
   }
 
   function handleChartTypeChange(type: ChartType) {
-    aiState.setAngleChartType(angle.id, type);
+    aiState.setAngleChartType(story.data.id, type);
+  }
+
+  function handleDelete() {
+    chartArchive.removeStories([story.id]);
   }
 </script>
 
-<div class="angle-card" class:expanded={isExpanded}>
+<div class="story-card" class:expanded={isExpanded}>
   <button
-    class="angle-header"
-    onclick={handleToggleAngle}
+    class="story-header"
+    onclick={handleToggle}
     aria-expanded={isExpanded}
   >
-    <div class="angle-header-content">
-      <span class="story-label">Story {storyNumber}</span>
-      <span class="angle-headline">{angle.headline}</span>
+    <div class="story-header-content">
+      <span class="story-headline">{story.data.headline}</span>
     </div>
     <svg class="chevron" width="20" height="20" viewBox="0 0 20 20" fill="none">
       <path d="M6 8l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -72,26 +60,13 @@
   </button>
 
   {#if isExpanded}
-    <div class="angle-body">
-      <p class="angle-summary">{angle.summary}</p>
+    <div class="story-body">
+      <p class="story-summary">{story.data.summary}</p>
 
       <div class="chart-controls">
-        <button
-          class="archive-btn"
-          class:active={isArchived}
-          onclick={handleToggleArchive}
-          title={isArchived ? 'Remove from archive' : 'Archive story'}
-          aria-label={isArchived ? 'Remove from archive' : 'Archive story'}
-        >
-          {#if isArchived}
-            <img src="/icons/icon-archive-fill.svg" alt="" width="18" height="18" />
-          {:else}
-            <img src="/icons/icon-archive.svg" alt="" width="18" height="18" />
-          {/if}
-        </button>
         <div class="chart-type-bar-wrapper">
           <ChartTypeBar
-            compatibleTypes={angle.compatibleChartTypes}
+            compatibleTypes={story.data.compatibleChartTypes}
             selectedType={currentChartType}
             onselect={handleChartTypeChange}
           />
@@ -99,49 +74,48 @@
       </div>
 
       <ChartDisplay
-        {angle}
+        angle={story.data}
         chartType={currentChartType}
         height={200}
       />
 
-      <div class="angle-actions">
-        <button class="action-btn" onclick={() => uiState.openDrawer('sources', angle.id)}>
+      <div class="story-actions">
+        <button class="action-btn" onclick={() => uiState.openDrawer('sources', story.data.id)}>
           Sources
         </button>
-        <button class="action-btn" onclick={() => uiState.openDrawer('data', angle.id)}>
+        <button class="action-btn" onclick={() => uiState.openDrawer('data', story.data.id)}>
           Data
         </button>
-        <button class="action-btn" onclick={() => uiState.openDrawer('explain', angle.id)}>
+        <button class="action-btn" onclick={() => uiState.openDrawer('explain', story.data.id)}>
           Explain
         </button>
         <button class="edit-btn" title="Edit chart" aria-label="Edit chart" onclick={() => editorOpen = true}>
           Edit chart
         </button>
       </div>
+
+      <div class="delete-row">
+        <button class="delete-btn" onclick={handleDelete} title="Delete" aria-label="Delete story">
+          <img src="/icons/icon-trash.svg" alt="" width="16" height="16" />
+          <span>Delete</span>
+        </button>
+      </div>
     </div>
   {/if}
 </div>
 
-{#if editorOpen}
-  <ChartEditor
-    chartType={currentChartType}
-    initialCsv={getAngleCsv()}
-    onclose={() => editorOpen = false}
-  />
-{/if}
-
 <style>
-  .angle-card {
+  .story-card {
     background: var(--white);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-lg);
     overflow: hidden;
     box-shadow: var(--shadow-sm);
-    transition: border-color var(--duration-normal) ease, opacity var(--duration-normal) ease;
+    transition: border-color var(--duration-normal) ease;
     animation: fadeIn var(--duration-normal) ease-out;
   }
 
-  .angle-card.expanded {
+  .story-card.expanded {
     border-color: var(--color-primary);
   }
 
@@ -150,7 +124,7 @@
     to { opacity: 1; }
   }
 
-  .angle-header {
+  .story-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -164,20 +138,14 @@
     min-height: 44px;
   }
 
-  .angle-header-content {
+  .story-header-content {
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
     flex: 1;
   }
 
-  .story-label {
-    font-weight: var(--font-weight-bold);
-    font-size: var(--font-size-base);
-    color: var(--color-primary);
-  }
-
-  .angle-headline {
+  .story-headline {
     font-weight: var(--font-weight-semibold);
     font-size: var(--font-size-sm);
     color: var(--text-dark);
@@ -195,7 +163,7 @@
     transform: rotate(180deg);
   }
 
-  .angle-body {
+  .story-body {
     padding: 0 1rem 1rem;
     display: flex;
     flex-direction: column;
@@ -203,7 +171,7 @@
     animation: slideUpFade var(--duration-normal) ease-out;
   }
 
-  .angle-summary {
+  .story-summary {
     font-size: var(--font-size-sm);
     color: var(--text-secondary);
     margin: 0;
@@ -216,42 +184,11 @@
     align-items: center;
   }
 
-  .archive-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    padding: 0;
-    background: none;
-    border: none;
-    border-radius: var(--radius-md);
-    cursor: pointer;
-    color: var(--text-dark);
-    min-height: 32px;
-    min-width: 32px;
-    flex-shrink: 0;
-    transition: filter 0.2s ease;
-  }
-
-  .archive-btn img {
-    opacity: 0.5;
-    transition: opacity 0.2s ease;
-  }
-
-  .archive-btn.active img {
-    opacity: 1;
-  }
-
-  .archive-btn:hover img {
-    opacity: 0.7;
-  }
-
   .chart-type-bar-wrapper {
     flex: 1;
   }
 
-  .angle-actions {
+  .story-actions {
     display: flex;
     gap: 0.5rem;
     align-items: center;
@@ -296,6 +233,38 @@
   .edit-btn:hover {
     background: #7c3aed;
     border-color: #7c3aed;
+  }
+
+  .delete-row {
+    display: flex;
+    justify-content: center;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--color-border);
+    margin-top: 0.5rem;
+  }
+
+  .delete-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    background: none;
+    border: none;
+    color: var(--color-error);
+    cursor: pointer;
+    transition: all var(--duration-fast) ease;
+    min-height: 32px;
+  }
+
+  .delete-btn:hover {
+    background: rgba(239, 68, 68, 0.1);
+    border-radius: var(--radius-md);
+  }
+
+  .delete-btn img {
+    opacity: 0.6;
   }
 
   @keyframes slideUpFade {

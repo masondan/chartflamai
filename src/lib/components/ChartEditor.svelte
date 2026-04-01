@@ -219,7 +219,22 @@
             font: { family: "'Inter', sans-serif", size: legendSize, weight: '500' },
             padding: 15,
             usePointStyle: true,
-            color: legendColor
+            pointStyle: isLine ? 'circle' : 'rect',
+            color: legendColor,
+            ...(isLine && {
+              generateLabels(chart: any) {
+                const { data } = chart;
+                return data.datasets.map((dataset: any, i: number) => ({
+                  text: dataset.label || '',
+                  fillStyle: dataset.borderColor || 'rgba(0,0,0,0.1)',
+                  strokeStyle: dataset.borderColor || 'rgba(0,0,0,0.1)',
+                  lineWidth: 0,
+                  hidden: !chart.isDatasetVisible(i),
+                  index: i,
+                  pointStyle: 'circle'
+                }));
+              }
+            })
           }
         },
         tooltip: {
@@ -695,7 +710,7 @@
         legendVisible, legendPosition, legendSize, legendColor,
         axisVisible, axisSize, axisBold, axisColor
       };
-      currentArchiveId = chartArchive.save('chart', config, thumb, currentArchiveId);
+      currentArchiveId = chartArchive.saveChart('chart', config, thumb, currentArchiveId);
     }, 800);
 
     return () => clearTimeout(saveTimer);
