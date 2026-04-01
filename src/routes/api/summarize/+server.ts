@@ -1,11 +1,12 @@
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getSummaryPrompt } from '$lib/utils/prompts';
+import { callGeminiText } from '$lib/utils/gemini';
 
 export const POST: RequestHandler = async ({ request, platform }) => {
-  const openaiKey = platform?.env?.OPENAI_API_KEY || import.meta.env.VITE_OPENAI_API_KEY;
+  const geminiKey = platform?.env?.GOOGLE_GENAI_API_KEY || import.meta.env.VITE_GOOGLE_GENAI_API_KEY;
 
-  if (!openaiKey) {
+  if (!geminiKey) {
     return error(500, 'API key not configured');
   }
 
@@ -24,28 +25,12 @@ export const POST: RequestHandler = async ({ request, platform }) => {
   try {
     const prompt = getSummaryPrompt(body.extractedText);
 
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openaiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: 1000,
-        temperature: 0.3
-      })
+    const summary = await callGeminiText({
+      apiKey: geminiKey,
+      systemPrompt: prompt,
+      userMessage: 'Summarise this document.',
+      maxOutputTokens: 1000
     });
-
-    if (!res.ok) {
-      const errText = await res.text().catch(() => '');
-      console.error('OpenAI error:', res.status, errText);
-      return error(502, 'Failed to generate summary');
-    }
-
-    const data = await res.json();
-    const summary = data.choices?.[0]?.message?.content || '';
 
     return json({ summary });
   } catch (err) {

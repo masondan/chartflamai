@@ -1,18 +1,14 @@
 import { error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { getSearchPrompt, getStructuringPrompt } from '$lib/utils/prompts';
-import { safeJsonParse } from '$lib/utils/json-repair';
+import { getSearchSystemPrompt } from '$lib/utils/prompts';
+import { callGemini } from '$lib/utils/gemini';
 import { validateAngleResponse } from '$lib/utils/validators';
 
 export const POST: RequestHandler = async ({ request, platform }) => {
-  const perplexityKey = platform?.env?.PERPLEXITY_API_KEY;
-  const openaiKey = platform?.env?.OPENAI_API_KEY;
+  const geminiKey = platform?.env?.GOOGLE_GENAI_API_KEY || import.meta.env.VITE_GOOGLE_GENAI_API_KEY;
 
-  const pKey = perplexityKey || import.meta.env.VITE_PERPLEXITY_API_KEY;
-  const oKey = openaiKey || import.meta.env.VITE_OPENAI_API_KEY;
-
-  if (!pKey || !oKey) {
-    return error(500, 'API keys not configured');
+  if (!geminiKey) {
+    return error(500, 'API key not configured');
   }
 
   let body: { query: string; audience?: string; chartTypeHint?: string };
@@ -36,54 +32,19 @@ export const POST: RequestHandler = async ({ request, platform }) => {
       try {
         send({ type: 'progress', message: 'Searching for data...' });
 
-        // Step 1: Perplexity Sonar search
-        const searchPrompt = getSearchPrompt(
-          body.query,
+        const systemPrompt = getSearchSystemPrompt(
           body.audience || '',
           body.chartTypeHint || 'any'
         );
 
-        const perplexityRes = await fetch('https://api.perplexity.ai/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${pKey}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            model: 'sonar',
-            messages: [{ role: 'user', content: searchPrompt }],
-            max_tokens: 4000
-          })
+        const result = await callGemini({
+          apiKey: geminiKey,
+          systemPrompt,
+          userMessage: body.query,
+          useSearch: true
         });
 
-        if (!perplexityRes.ok) {
-          const errText = await perplexityRes.text().catch(() => '');
-          console.error('Perplexity error:', perplexityRes.status, errText);
-          send({ type: 'error', message: 'Data search failed. Please try again.' });
-          controller.close();
-          return;
-        }
-
-        const perplexityData = await perplexityRes.json();
-        const analysisText = perplexityData.choices?.[0]?.message?.content || '';
-        const citations = perplexityData.citations
-          ? perplexityData.citations.map((c: string) => c).join('\n')
-          : '';
-
-        if (!analysisText) {
-          send({ type: 'error', message: 'No analysis returned from search.' });
-          controller.close();
-          return;
-        }
-
-        send({ type: 'progress', message: 'Structuring data for charts...' });
-
-        // Step 2: OpenAI structuring
-        const structuringPrompt = getStructuringPrompt(analysisText, citations, 'search');
-        const structureResponse = await callOpenAI(oKey, structuringPrompt);
-
-        // Validate
-        const validation = validateAngleResponse(structureResponse);
+        const validation = validateAngleResponse(result);
         if (validation.valid && validation.data) {
           send({ type: 'result', data: validation.data });
           controller.close();
@@ -92,11 +53,16 @@ export const POST: RequestHandler = async ({ request, platform }) => {
 
         // Retry once
         send({ type: 'progress', message: 'Refining results...' });
-        console.warn('First structuring attempt failed, retrying...', validation.errors);
-        const retryPrompt = structuringPrompt + '\n\nIMPORTANT: Return ONLY valid JSON. No markdown, no explanation. Just the JSON object.';
-        const retryResponse = await callOpenAI(oKey, retryPrompt);
-        const retryValidation = validateAngleResponse(retryResponse);
+        console.warn('First attempt failed, retrying...', validation.errors);
 
+        const retryResult = await callGemini({
+          apiKey: geminiKey,
+          systemPrompt: systemPrompt + '\n\nCRITICAL: Return ONLY valid JSON. No markdown, no explanation. Just the JSON object.',
+          userMessage: body.query,
+          useSearch: true
+        });
+
+        const retryValidation = validateAngleResponse(retryResult);
         if (retryValidation.valid && retryValidation.data) {
           send({ type: 'result', data: retryValidation.data });
         } else {
@@ -120,30 +86,3 @@ export const POST: RequestHandler = async ({ request, platform }) => {
     }
   });
 };
-
-async function callOpenAI(apiKey: string, prompt: string): Promise<unknown> {
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: [{ role: 'user', content: prompt }],
-      response_format: { type: 'json_object' },
-      max_tokens: 4000,
-      temperature: 0.3
-    })
-  });
-
-  if (!res.ok) {
-    const errText = await res.text().catch(() => '');
-    console.error('OpenAI error:', res.status, errText);
-    throw new Error(`Structuring failed (${res.status})`);
-  }
-
-  const data = await res.json();
-  const content = data.choices?.[0]?.message?.content || '';
-  return safeJsonParse(content);
-}
