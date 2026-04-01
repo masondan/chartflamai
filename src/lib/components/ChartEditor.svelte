@@ -1452,7 +1452,7 @@
   }
 
   .add-row-btn {
-    align-self: flex-start;
+    align-self: center;
     padding: 0;
     background: none;
     border: none;
@@ -1461,7 +1461,7 @@
 
   .csv-input {
     width: 100%;
-    padding: 0.625rem;
+    padding: 0.625rem 0.625rem 1rem 0.625rem;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
     font-family: 'Courier New', monospace;
@@ -1471,13 +1471,15 @@
   }
 
   .csv-input::placeholder {
+    font-size: var(--font-size-base);
     color: #999999;
     opacity: 1;
   }
 
   .csv-divider {
     text-align: center;
-    font-size: var(--font-size-xs);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
     color: var(--text-dark);
     margin: 0.5rem 0;
     position: relative;
