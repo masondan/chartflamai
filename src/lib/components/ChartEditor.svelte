@@ -373,14 +373,14 @@
     switch (barStyleControl) {
       case 'corner': return 0;
       case 'gap': return 40;
-      case 'resize': return 100;
+      case 'resize': return 50;
     }
   }
   function getBarSliderMax(): number {
     switch (barStyleControl) {
       case 'corner': return 40;
       case 'gap': return 100;
-      case 'resize': return 200;
+      case 'resize': return 150;
     }
   }
   function setBarSlider(val: number) {
@@ -403,14 +403,14 @@
     switch (lineStyleControl) {
       case 'smoothing': return 0;
       case 'linewidth': return 1;
-      case 'resize': return 100;
+      case 'resize': return 50;
     }
   }
   function getLineSliderMax(): number {
     switch (lineStyleControl) {
       case 'smoothing': return 5;
       case 'linewidth': return 15;
-      case 'resize': return 200;
+      case 'resize': return 150;
     }
   }
   function setLineSlider(val: number) {
@@ -698,7 +698,7 @@
           "
         >{chartTitle}</h3>
       {/if}
-      <div class="canvas-container" class:pie-square={isPie} style="height: {isPie ? '240px' : isBar ? (240 * (100 / barAspectRatio)) + 'px' : (240 * (100 / lineAspectRatio)) + 'px'};">
+      <div class="canvas-container" class:pie-square={isPie} style="{isPie ? '' : 'height: ' + (isBar ? (240 * (100 / barAspectRatio)) : (240 * (100 / lineAspectRatio))) + 'px'}">
         {#if browser}
           <canvas bind:this={canvas}></canvas>
         {/if}
@@ -1127,7 +1127,7 @@
       </div>
 
       <!-- ═══ LEGEND ═══ -->
-      {#if !isPie && isMultiSeries}
+      {#if isPie || isMultiSeries}
         <div class="control-section" class:open={openSection === 'legend'}>
           <button class="section-header" onclick={() => openSection = openSection === 'legend' ? '' : 'legend'}>
             Legend
@@ -1137,30 +1137,36 @@
           </button>
           {#if openSection === 'legend'}
             <div class="section-body">
-              <div class="color-row">
-                <span class="color-label">Visible</span>
-                <input type="checkbox" checked={legendVisible} onchange={(e) => { legendVisible = (e.target as HTMLInputElement).checked; updateChart(); }} />
+              <div class="text-control-row">
+                <img src="/icons/icon-font-size.svg" alt="" width="16" height="16" class="ctrl-icon" />
+                <input
+                  type="range"
+                  class="style-slider"
+                  min="10"
+                  max="18"
+                  value={legendSize}
+                  oninput={(e) => { legendSize = Number((e.target as HTMLInputElement).value); updateChart(); }}
+                />
+                <button class="ctrl-btn" onclick={() => { legendVisible = !legendVisible; updateChart(); }} title="Show/hide legend">
+                  <img src={legendVisible ? '/icons/icon-visibility.svg' : '/icons/icon-no-visibility.svg'} alt="" width="16" height="16" />
+                </button>
+                <input
+                  type="color"
+                  class="color-picker"
+                  value={legendColor}
+                  oninput={(e) => { legendColor = (e.target as HTMLInputElement).value; updateChart(); }}
+                />
               </div>
-              {#if legendVisible}
-                <div class="legend-position-row">
-                  <button class="legend-position-btn" class:active={legendPosition === 'top'} onclick={() => { legendPosition = 'top'; updateChart(); }}>
-                    <img src="/icons/icon-align-top.svg" alt="" width="16" height="16" />
-                    Top
-                  </button>
-                  <button class="legend-position-btn" class:active={legendPosition === 'bottom'} onclick={() => { legendPosition = 'bottom'; updateChart(); }}>
-                    <img src="/icons/icon-align-bottom.svg" alt="" width="16" height="16" />
-                    Bottom
-                  </button>
-                </div>
-                <div class="color-row">
-                  <span class="color-label">Size</span>
-                  <input type="range" min="10" max="16" value={legendSize} oninput={(e) => { legendSize = Number((e.target as HTMLInputElement).value); updateChart(); }} />
-                </div>
-                <div class="color-row">
-                  <span class="color-label">Colour</span>
-                  <input type="color" class="color-picker" value={legendColor} oninput={(e) => { legendColor = (e.target as HTMLInputElement).value; updateChart(); }} />
-                </div>
-              {/if}
+              <div class="legend-position-row">
+                <button class="legend-position-btn" class:active={legendPosition === 'bottom'} onclick={() => { legendPosition = 'bottom'; updateChart(); }} title="Legend below">
+                  <img src="/icons/icon-align-bottom.svg" alt="" width="16" height="16" />
+                  <span>Legend below</span>
+                </button>
+                <button class="legend-position-btn" class:active={legendPosition === 'top'} onclick={() => { legendPosition = 'top'; updateChart(); }} title="Legend above">
+                  <img src="/icons/icon-align-top.svg" alt="" width="16" height="16" />
+                  <span>Legend above</span>
+                </button>
+              </div>
             </div>
           {/if}
         </div>
@@ -1177,23 +1183,29 @@
           </button>
           {#if openSection === 'axes'}
             <div class="section-body">
-              <div class="color-row">
-                <span class="color-label">Visible</span>
-                <input type="checkbox" checked={axisVisible} onchange={(e) => { axisVisible = (e.target as HTMLInputElement).checked; updateChart(); }} />
+              <div class="text-control-row">
+                <img src="/icons/icon-font-size.svg" alt="" width="16" height="16" class="ctrl-icon" />
+                <input
+                  type="range"
+                  class="style-slider"
+                  min="10"
+                  max="18"
+                  value={axisSize}
+                  oninput={(e) => { axisSize = Number((e.target as HTMLInputElement).value); updateChart(); }}
+                />
+                <button class="ctrl-btn" class:active={axisBold} onclick={() => { axisBold = !axisBold; updateChart(); }} title="Bold">
+                  <img src="/icons/icon-bold.svg" alt="" width="16" height="16" />
+                </button>
+                <button class="ctrl-btn" onclick={() => { axisVisible = !axisVisible; updateChart(); }} title="Show/hide axes">
+                  <img src={axisVisible ? '/icons/icon-visibility.svg' : '/icons/icon-no-visibility.svg'} alt="" width="16" height="16" />
+                </button>
+                <input
+                  type="color"
+                  class="color-picker"
+                  value={axisColor}
+                  oninput={(e) => { axisColor = (e.target as HTMLInputElement).value; updateChart(); }}
+                />
               </div>
-              {#if axisVisible}
-                <div class="color-row">
-                  <span class="color-label">Size</span>
-                  <input type="range" min="10" max="16" value={axisSize} oninput={(e) => { axisSize = Number((e.target as HTMLInputElement).value); updateChart(); }} />
-                </div>
-                <div class="color-row">
-                  <button class="ctrl-btn" class:active={axisBold} onclick={() => { axisBold = !axisBold; updateChart(); }} title="Bold">
-                    <img src="/icons/icon-bold.svg" alt="" width="16" height="16" />
-                  </button>
-                  <span class="color-label">Colour</span>
-                  <input type="color" class="color-picker" value={axisColor} oninput={(e) => { axisColor = (e.target as HTMLInputElement).value; updateChart(); }} />
-                </div>
-              {/if}
             </div>
           {/if}
         </div>
@@ -1592,6 +1604,11 @@
     outline: none;
   }
 
+  .style-slider:focus {
+    outline: none;
+    box-shadow: none;
+  }
+
   .style-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
@@ -1600,6 +1617,7 @@
     background: var(--color-primary);
     cursor: pointer;
     border-radius: var(--radius-round);
+    border: none;
   }
 
   .style-slider::-moz-range-thumb {
@@ -1672,8 +1690,8 @@
     height: 36px;
     padding: 0;
     background: none;
-    border: 1.5px solid var(--color-border);
-    border-radius: var(--radius-md);
+    border: none;
+    border-radius: var(--radius-round);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -1682,8 +1700,7 @@
   }
 
   .bg-option.active {
-    border-color: var(--color-primary);
-    background: rgba(84, 34, 176, 0.1);
+    border: 2px solid var(--color-primary);
   }
 
   .bg-circle {
@@ -1692,23 +1709,27 @@
     border-radius: var(--radius-round);
   }
 
-  .bg-white {
+  .bg-circle.bg-white {
     background: #FFFFFF;
     border: 1px solid #e0e0e0;
   }
 
-  .bg-transparent {
-    background: repeating-linear-gradient(
-      45deg,
-      #f0f0f0,
-      #f0f0f0 10px,
-      #ffffff 10px,
-      #ffffff 20px
-    );
+  .bg-circle.bg-transparent {
+    background-color: #fff !important;
+    background-image:
+      linear-gradient(45deg, #ccc 25%, transparent 25%),
+      linear-gradient(-45deg, #ccc 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #ccc 75%),
+      linear-gradient(-45deg, transparent 75%, #ccc 75%) !important;
+    background-size: 6px 6px !important;
+    background-position: 0 0, 0 3px, 3px -3px, -3px 0px !important;
   }
 
-  .bg-rainbow {
-    background: linear-gradient(135deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff);
+  .bg-circle.bg-rainbow {
+    background-image: conic-gradient(
+      red, yellow, lime, aqua, blue, magenta, red
+    ) !important;
+    background-color: transparent !important;
   }
 
   .visually-hidden {
@@ -1830,6 +1851,28 @@
     accent-color: var(--color-primary);
     min-height: auto;
     padding: 0;
+    border: none;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    background: #e0e0e0;
+    border-radius: 3px;
+    outline: none;
+  }
+
+  .text-control-row input[type="range"]:focus {
+    outline: none;
+    box-shadow: none;
+  }
+
+  .text-control-row input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    background: var(--color-primary);
+    cursor: pointer;
+    border-radius: var(--radius-round);
     border: none;
   }
 </style>
