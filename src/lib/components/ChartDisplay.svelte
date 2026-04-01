@@ -52,8 +52,6 @@
             padding: 10,
             usePointStyle: true,
             pointStyle: 'circle',
-            pointStyleWidth: 8,
-            boxWidth: 8,
             color: '#555'
           }
         },

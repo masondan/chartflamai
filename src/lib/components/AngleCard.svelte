@@ -78,7 +78,7 @@
           Explain
         </button>
         <button class="edit-btn" title="Edit chart" aria-label="Edit chart" onclick={() => editorOpen = true}>
-          <img src="/icons/icon-edit-fill.svg" alt="" width="18" height="18" />
+          Edit chart
         </button>
       </div>
     </div>
@@ -184,7 +184,7 @@
     font-size: var(--font-size-xs);
     font-weight: var(--font-weight-medium);
     background: var(--white);
-    border: 1.5px solid var(--color-primary);
+    border: 1px solid var(--color-primary);
     border-radius: var(--radius-md);
     color: var(--color-primary);
     cursor: pointer;
@@ -201,20 +201,23 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
-    padding: 0;
-    margin-left: auto;
-    background: var(--white);
+    gap: 0.5rem;
+    padding: 0.375rem 0.75rem;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    background: var(--color-primary);
+    color: var(--white);
     border: 1.5px solid var(--color-primary);
     border-radius: var(--radius-md);
     cursor: pointer;
     min-height: 32px;
-    min-width: 32px;
+    flex: 1;
+    transition: all var(--duration-fast) ease;
   }
 
   .edit-btn:hover {
-    background: var(--color-highlight);
+    background: #7c3aed;
+    border-color: #7c3aed;
   }
 
   @keyframes slideUpFade {
