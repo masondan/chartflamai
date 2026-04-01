@@ -1253,11 +1253,14 @@
     border: none;
     cursor: pointer;
     color: var(--text-dark);
+    flex-shrink: 0;
   }
 
   .type-tabs {
     display: flex;
     gap: 0.25rem;
+    justify-content: center;
+    flex: 1;
   }
 
   .type-tab {
@@ -1288,7 +1291,8 @@
   }
 
   .header-spacer {
-    flex: 1;
+    width: 36px;
+    flex-shrink: 0;
   }
 
   .chart-preview {
@@ -1330,7 +1334,7 @@
   .pie-donut-toggle {
     display: flex;
     gap: 0;
-    margin: 0 1rem;
+    margin: 0.75rem 1rem;
     border: 1.5px solid var(--color-border);
     border-radius: var(--radius-md);
     overflow: hidden;
