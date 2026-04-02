@@ -15,7 +15,7 @@ const JSON_SCHEMA = `{
       "reasoning": "Why this visualisation works for this data",
       "sources": ["Organisation Name: https://full-url-to-dataset"],
       "keyFinding": "One powerful sentence with the core insight",
-      "explain": "150 words of explanation, insight and interpretation, using clear, concise language. First explain the importance and impact of the data; follow with the context; end with "what the numbers reveal.",
+      "explain": "150 words of explanation, insight and interpretation, using clear, concise language. First explain the importance and impact of the data; follow with the context; end with 'what the numbers reveal.' Format as 2–3 short paragraphs separated by \\n\\n for readability.",
       "data": {
         "labels": ["x-axis label 1", "x-axis label 2"],
         "datasets": [{
