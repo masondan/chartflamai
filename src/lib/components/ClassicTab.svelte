@@ -119,6 +119,12 @@
     openEditor(selectedChartType, csvData);
   }
 
+  function handleResetChart() {
+    chartData = null;
+    csvData = '';
+    dataOpen = true;
+  }
+
   function handleStartWithChart(starter: typeof chartStarters[number]) {
     if (starter.label === 'Pictogram') {
       pictogramOpen = true;
@@ -175,7 +181,9 @@
   {#if chartData}
     <div class="chart-card card active-border">
       <div class="chart-card-header">
-        <span class="chart-card-title">Chart</span>
+        <button class="reset-btn" title="Start again" aria-label="Start again" onclick={handleResetChart}>
+          <img src="/icons/icon-reset.svg" alt="" class="reset-icon" />
+        </button>
         <ChartTypeBar
           compatibleTypes={chartData.compatibleChartTypes}
           selectedType={selectedChartType}
@@ -317,11 +325,33 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 0.5rem;
   }
 
-  .chart-card-title {
-    font-weight: var(--font-weight-semibold);
-    color: var(--text-dark);
+  .reset-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    padding: 6px;
+    background: none;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    min-height: 34px;
+    min-width: 34px;
+    transition: all var(--duration-fast) ease;
+  }
+
+  .reset-btn:hover {
+    background: var(--color-highlight);
+  }
+
+  .reset-icon {
+    width: 20px;
+    height: 20px;
+    filter: brightness(0) saturate(100%);
   }
 
   .edit-btn {

@@ -1,12 +1,12 @@
 {
   "name": "ChartFlam",
   "short_name": "ChartFlam",
-  "description": "AI-powered data discovery and chart generation for journalists",
+  "description": "Mobile-first chart generator with AI",
   "start_url": "/",
   "scope": "/",
-  "display": "standalone",
+  "display": "browser",
   "orientation": "portrait-primary",
-  "background_color": "#ffffff",
+  "background_color": "#5422b0",
   "theme_color": "#5422b0",
   "icons": [
     {

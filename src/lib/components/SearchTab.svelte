@@ -145,7 +145,7 @@
           <input
             type="text"
             bind:value={query}
-            placeholder="What do you want the chart to show?"
+            placeholder="Tell data stories about ..."
             disabled={uiState.value.isLoading}
           />
         </label>
