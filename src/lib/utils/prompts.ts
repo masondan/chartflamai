@@ -15,7 +15,7 @@ const JSON_SCHEMA = `{
       "reasoning": "Why this visualisation works for this data",
       "sources": ["Organisation Name: https://full-url-to-dataset"],
       "keyFinding": "One powerful sentence with the core insight",
-      "explain": "Mobile-optimised 3-paragraph explainer. Paragraph 1: the 'so what'. Paragraph 2: context. Paragraph 3: what the numbers reveal.",
+      "explain": "150 words of explanation, insight and interpretation, using clear, concise language. First explain the importance and impact of the data; follow with the context; end with "what the numbers reveal.",
       "data": {
         "labels": ["x-axis label 1", "x-axis label 2"],
         "datasets": [{
@@ -34,10 +34,11 @@ const EDITORIAL_STANDARDS = `### MANDATORY EDITORIAL STANDARDS:
 2. **The Standfirst (Summary):** Provide a ~40-word narrative summary under the headline. This should be a "compelling lede" that sets the scene and draws the reader in. It should NOT be data-heavy; focus on the human impact or the "why" of the story.
 3. **Language:** Use impeccable British English (e.g., 'programme', 'organise', 'colour').
 4. **Data Depth:**
-   - **Line Charts:** MUST show a trend with at least 8–12 chronological data points to provide historical depth.
-   - **Bar/Pie Charts:** Aim for 5 distinct categories to ensure a comprehensive comparison.
-   - **Diversity:** Synthesise data from at least 2–3 authoritative sources (UN, World Bank, National Bureaus).
-5. **The Mini-Explainer:** This is the deep dive. Provide 3 short paragraphs (1–2 sentences each) explaining the "so what," the context, and what the numbers reveal.`;
+   - **Line Charts:** MUST show a trend with at least 8 chronological data points to provide historical depth.
+   - **Pie Charts:** Aim for 3-5 distinct categories to ensure a comprehensive comparison.
+   - **Bar charts:** Aim for a minimum of four categories.
+   - **Diversity:** Synthesise data from at least 2–3 authoritative sources (UN, World Bank, National Bureaus, authoritative reports and research documents).
+5. **The Mini-Explainer:** This is the deep dive. Provide 150 words in short sentences explaining the why the data is important, the context, and what the numbers reveal.`;
 
 const JSON_RULES = `### RULES:
 - Return EXACTLY 3 angles
@@ -46,7 +47,8 @@ const JSON_RULES = `### RULES:
 - compatibleChartTypes must list all chart types that could work for this data
 - sources MUST use format "Organisation Name: https://actual-url" with real URLs
 - Line charts MUST have 8+ data points
-- Bar/pie charts should have 4–6 categories
+- Pie charts should have 3–5 categories
+- Bar charts should have a minimum of four categories
 - Return ONLY the JSON object. No markdown fences, no explanation. Just the JSON.`;
 
 export function getSearchSystemPrompt(audience: string, chartTypeHint: string): string {
@@ -138,7 +140,7 @@ Write a concise summary (150–200 words) that:
 1. Identifies the document's subject and scope
 2. Highlights the most significant numerical data, statistics, and trends
 3. Notes any tables, comparisons, or time-series data that could be charted
-4. Uses British English
+4. Uses clear, concise British English
 
 Focus on CHARTABLE data — numbers, percentages, trends, comparisons. The journalist will use this summary to decide what question to ask for chart generation.
 
