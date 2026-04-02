@@ -395,13 +395,13 @@
         </div>
 
         <label class="field-label">
-          Audience
+          <span>Audience <span class="optional">(Optional)</span></span>
           <input type="text" bind:value={audience} placeholder="Describe your target audience: who, where" disabled={uiState.value.isLoading} />
         </label>
 
         <label class="field-label">
           Topic
-          <input type="text" bind:value={query} placeholder="What do you want the chart to show?" disabled={uiState.value.isLoading || suggestAngles} />
+          <input type="text" bind:value={query} placeholder="Show data stories about ..." disabled={uiState.value.isLoading || suggestAngles} />
         </label>
 
         <label class="suggest-toggle">
@@ -721,6 +721,10 @@
     font-size: var(--font-size-sm);
     font-weight: var(--font-weight-medium);
     color: var(--text-dark);
+  }
+
+  .optional {
+    color: #999999;
   }
 
   .suggest-toggle {

@@ -131,7 +131,7 @@
     {#if explorerOpen}
        <div class="explorer-form" onclick={(e) => e.stopPropagation()}>
         <label class="field-label">
-          Audience
+          <span>Audience <span class="optional">(Optional)</span></span>
           <input
             type="text"
             bind:value={audience}
@@ -145,7 +145,7 @@
           <input
             type="text"
             bind:value={query}
-            placeholder="Tell data stories about ..."
+            placeholder="Show data stories about ..."
             disabled={uiState.value.isLoading}
           />
         </label>
@@ -268,6 +268,10 @@
     font-size: var(--font-size-sm);
     font-weight: var(--font-weight-medium);
     color: var(--text-dark);
+  }
+
+  .optional {
+    color: #999999;
   }
 
   .chart-type-selector {
