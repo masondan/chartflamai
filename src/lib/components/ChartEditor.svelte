@@ -1322,7 +1322,7 @@
   .editor-overlay {
     position: fixed;
     inset: 0;
-    z-index: var(--z-modal);
+    z-index: calc(var(--z-modal) + 50);
     background: var(--bg-surface);
     overflow-y: auto;
   }

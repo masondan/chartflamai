@@ -98,7 +98,7 @@
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.4);
-    z-index: var(--z-modal-overlay);
+    z-index: calc(var(--z-modal) + 100);
     display: flex;
     align-items: flex-end;
     justify-content: center;
@@ -113,7 +113,7 @@
     border-radius: var(--radius-xl) var(--radius-xl) 0 0;
     display: flex;
     flex-direction: column;
-    z-index: var(--z-modal);
+    z-index: calc(var(--z-modal) + 110);
     animation: slideDrawerUp 0.3s ease-out;
   }
 

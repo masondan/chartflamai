@@ -3,6 +3,7 @@
   import { aiState } from '$lib/stores/aiState.svelte';
   import { chartArchive, type ArchivedStory } from '$lib/stores/chartArchive.svelte';
   import ChartDisplay from './ChartDisplay.svelte';
+  import ChartEditor from './ChartEditor.svelte';
   import ChartTypeBar from './ChartTypeBar.svelte';
   import type { ChartType } from '$lib/config/design';
 
@@ -103,6 +104,14 @@
     </div>
   {/if}
 </div>
+
+{#if editorOpen}
+  <ChartEditor
+    chartType={currentChartType}
+    initialCsv={getAngleCsv()}
+    onclose={() => editorOpen = false}
+  />
+{/if}
 
 <style>
   .story-card {
