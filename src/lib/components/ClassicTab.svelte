@@ -189,11 +189,9 @@
         height={240}
       />
 
-      <div class="chart-actions">
-        <button class="edit-btn" title="Edit chart" aria-label="Edit chart" onclick={handleEditClick}>
-          <img src="/icons/icon-edit-fill.svg" alt="" width="18" height="18" />
-        </button>
-      </div>
+      <button class="edit-btn" title="Edit chart" aria-label="Edit chart" onclick={handleEditClick}>
+        Edit chart
+      </button>
     </div>
   {/if}
 
@@ -326,28 +324,27 @@
     color: var(--text-dark);
   }
 
-  .chart-actions {
-    display: flex;
-    justify-content: flex-end;
-  }
-
   .edit-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
-    padding: 0;
-    background: none;
+    gap: 0.5rem;
+    padding: 0.375rem 0.75rem;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    background: var(--color-primary);
+    color: var(--white);
     border: 1.5px solid var(--color-primary);
     border-radius: var(--radius-md);
     cursor: pointer;
-    min-height: 36px;
-    min-width: 36px;
+    min-height: 32px;
+    width: 100%;
+    transition: all var(--duration-fast) ease;
   }
 
   .edit-btn:hover {
-    background: var(--color-highlight);
+    background: #7c3aed;
+    border-color: #7c3aed;
   }
 
   /* Chart starters */
