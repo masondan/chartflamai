@@ -38,7 +38,7 @@ const EDITORIAL_STANDARDS = `### MANDATORY EDITORIAL STANDARDS:
    - **Pie Charts:** Aim for 3-5 distinct categories to ensure a comprehensive comparison.
    - **Bar charts:** Aim for a minimum of four categories.
    - **Diversity:** Synthesise data from at least 2–3 authoritative sources (UN, World Bank, National Bureaus, authoritative reports and research documents).
-5. **The Mini-Explainer:** This is the deep dive. Provide 150 words in short sentences explaining the why the data is important, the context, and what the numbers reveal.`;
+5. **The Mini-Explainer:** This is the deep dive. Provide 150 words of narrative explaining the why the data is important, the context, and what the numbers reveal.`;
 
 const JSON_RULES = `### RULES:
 - Return EXACTLY 3 angles
