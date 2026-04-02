@@ -16,13 +16,9 @@
   }
 </script>
 
-<div class="app-shell">
+<div class="app app-shell">
   <header class="header">
-    <button class="header-btn" aria-label="Menu">
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-        <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-      </svg>
-    </button>
+    <flam-nav current="chartflam"></flam-nav>
     <a href="/" class="logo-link">
       <img src="/logos/logo-chartflam-logotype.png" alt="ChartFlam" class="logo" />
     </a>
