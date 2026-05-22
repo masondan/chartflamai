@@ -4,7 +4,7 @@
   "description": "Mobile-first chart generator with AI",
   "start_url": "/",
   "scope": "/",
-  "display": "browser",
+  "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#5422b0",
   "theme_color": "#5422b0",
