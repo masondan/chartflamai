@@ -308,14 +308,16 @@
 
   async function downloadWaffle() {
     const exportWidth = 1080;
+    const padding = 40;
     const { total, rows } = getGridDimensions();
-    const cellSize = (exportWidth - cellGap * (gridCols - 1)) / gridCols - 2;
+    const availableWidth = exportWidth - padding * 2;
+    const cellSize = (availableWidth - cellGap * (gridCols - 1)) / gridCols;
     const gridHeight = rows * cellSize + cellGap * (rows - 1) + 20;
 
     // Pre-measure title and caption for word wrapping
     const measureCanvas = document.createElement('canvas');
     const measureCtx = measureCanvas.getContext('2d')!;
-    const textMaxWidth = exportWidth - 80;
+    const textMaxWidth = exportWidth - padding * 2;
 
     const exportTitleFontSize = Math.round(titleSize * 2);
     const titleLineSpacing = exportTitleFontSize * 1.3;
@@ -374,7 +376,6 @@
     });
 
     let cellIdx = 0;
-    const padding = 40;
     for (let row = 0; row < rows; row++) {
       for (let col = 0; col < gridCols; col++) {
         if (cellIdx < cellColors.length) {
