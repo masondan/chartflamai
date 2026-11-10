@@ -3,6 +3,8 @@
   import { browser } from '$app/environment';
   import { PICTOGRAM_ICONS, type PictogramIcon } from '$lib/data/pictogram-icons';
   import { chartArchive } from '$lib/stores/chartArchive.svelte';
+  import AnimateSection from './AnimateSection.svelte';
+  import type { PictogramClipConfig } from '$lib/animation/renderers/pictogram';
 
   interface Props {
     archiveId?: string;
@@ -262,6 +264,33 @@
       lines.push(currentLine);
     }
     return lines;
+  }
+
+  // ─── Animation config builder (mirrors buildBarClipConfig in ChartEditor) ───
+  function buildPictogramClipConfig(): PictogramClipConfig {
+    return {
+      iconSvg: currentIconSvg,
+      filled: pictogramFilled,
+      filledColor: pictogramFilledColor,
+      unfilledColor: pictogramUnfilledColor,
+      horizontalSpacing,
+      verticalSpacing,
+      bgColor,
+      chartTitle,
+      titleFont,
+      titleSize,
+      titleBold,
+      titleItalic,
+      titleAlign,
+      titleColor,
+      titleLineHeight,
+      chartCaption,
+      captionFont,
+      captionSize,
+      captionAlign,
+      captionColor,
+      captionLineHeight
+    };
   }
 
   // ─── Download ───
@@ -803,6 +832,21 @@
                 oninput={(e) => { captionColor = (e.target as HTMLInputElement).value; }}
               />
             </div>
+          </div>
+        {/if}
+      </div>
+
+      <!-- ═══ ANIMATE ═══ -->
+      <div class="control-section" class:open={openSection === 'animate'}>
+        <button class="section-header" onclick={() => openSection = openSection === 'animate' ? '' : 'animate'}>
+          Animate
+          <svg class="section-chevron" width="16" height="16" viewBox="0 0 20 20" fill="none">
+            <path d="M6 8l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        {#if openSection === 'animate'}
+          <div class="section-body">
+            <AnimateSection pictogramConfig={buildPictogramClipConfig()} />
           </div>
         {/if}
       </div>

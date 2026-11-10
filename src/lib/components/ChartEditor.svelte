@@ -1263,7 +1263,7 @@
       {/if}
 
       <!-- ═══ ANIMATE ═══ -->
-      {#if isBar}
+      {#if isBar || isLine || isPie}
         <div class="control-section" class:open={openSection === 'animate'}>
           <button class="section-header" onclick={() => openSection = openSection === 'animate' ? '' : 'animate'}>
             Animate
@@ -1273,7 +1273,13 @@
           </button>
           {#if openSection === 'animate'}
             <div class="section-body">
-              <AnimateSection barConfig={buildBarClipConfig()} />
+              {#if isBar}
+                <AnimateSection barConfig={buildBarClipConfig()} />
+              {:else if isLine}
+                <AnimateSection lineConfig={buildBarClipConfig()} />
+              {:else if isPie}
+                <AnimateSection pieConfig={buildBarClipConfig()} />
+              {/if}
             </div>
           {/if}
         </div>

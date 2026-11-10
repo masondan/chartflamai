@@ -11,6 +11,8 @@ import { FPS, totalMs } from './timeline';
 import { preparePictogramClip, type PictogramClipConfig } from './renderers/pictogram';
 import { prepareWaffleClip, type WaffleClipConfig } from './renderers/waffle';
 import { prepareBarClip, type BarClipConfig } from './renderers/bar';
+import { prepareLineClip, type LineClipConfig } from './renderers/line';
+import { preparePieClip, type PieClipConfig } from './renderers/pie';
 
 export interface ClipSpec {
   width: number; // final video size, even integers
@@ -24,7 +26,7 @@ export interface ClipSpec {
   dispose(): void;
 }
 
-export type EditorKind = 'pictogram' | 'waffle' | 'bar';
+export type EditorKind = 'pictogram' | 'waffle' | 'bar' | 'line' | 'pie';
 
 export interface CreateClipOptions {
   kind: EditorKind;
@@ -34,6 +36,8 @@ export interface CreateClipOptions {
   pictogram?: PictogramClipConfig;
   waffle?: WaffleClipConfig;
   bar?: BarClipConfig;
+  line?: LineClipConfig;
+  pie?: PieClipConfig;
 }
 
 export async function createClip(options: CreateClipOptions): Promise<ClipSpec> {
@@ -50,6 +54,12 @@ export async function createClip(options: CreateClipOptions): Promise<ClipSpec> 
   } else if (kind === 'bar') {
     if (!options.bar) throw new Error('createClip: bar config required for kind="bar"');
     prepared = await prepareBarClip(options.bar, scale);
+  } else if (kind === 'line') {
+    if (!options.line) throw new Error('createClip: line config required for kind="line"');
+    prepared = await prepareLineClip(options.line, scale);
+  } else if (kind === 'pie') {
+    if (!options.pie) throw new Error('createClip: pie config required for kind="pie"');
+    prepared = await preparePieClip(options.pie, scale);
   } else {
     throw new Error(`createClip: unsupported kind "${kind}"`);
   }

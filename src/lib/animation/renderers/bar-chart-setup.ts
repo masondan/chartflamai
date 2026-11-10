@@ -92,8 +92,9 @@ export function scaleConfigForAnimation(config: BarClipConfig): BarClipConfig {
  * Build Chart.js config for animation (offscreen canvas, responsive:false).
  * Wrapper around the shared buildChartConfig, with animation-specific overrides.
  */
-function buildChartConfigForAnimation(config: BarClipConfig): ChartConfiguration {
-  const baseConfig = buildChartConfig(scaleConfigForAnimation(config));
+export function buildChartConfigForAnimation(config: BarClipConfig): ChartConfiguration {
+  const scaled = scaleConfigForAnimation(config);
+  const baseConfig = buildChartConfig(scaled);
 
   // Override responsive/animation for offscreen rendering
   baseConfig.options = baseConfig.options || {};
@@ -108,19 +109,55 @@ function buildChartConfigForAnimation(config: BarClipConfig): ChartConfiguration
   // causing the cropped/zoomed preview with a grey strip at the bottom.
   baseConfig.options.devicePixelRatio = 1;
 
+  // Line-specific: give the y-axis extra tick padding so the first point's
+  // marker — scaled up ~ANIMATION_STYLE_SCALE for the bigger animation
+  // canvas — doesn't overlap the y-axis tick labels. Line charts have no
+  // x-edge offset by default, so the first/last points sit exactly at
+  // chartArea.left/right; a marker radius big enough to read clearly on a
+  // 1080px canvas bleeds left into the axis label column that was sized for
+  // a much smaller marker on the 416px editor canvas. Padding pushes
+  // chartArea.left further right, giving the marker clearance. Scoped to
+  // this animation-only render path — buildChartConfig() itself (used by
+  // the live editor preview) and the PNG download are untouched.
+  if (config.activeType === 'line') {
+    const yScale: any = baseConfig.options.scales?.y;
+    if (yScale) {
+      yScale.ticks = yScale.ticks || {};
+      const markerPad = config.markerVisible ? scaled.markerSize || 0 : 0;
+      yScale.ticks.padding = markerPad + 10;
+    }
+  }
+
   return baseConfig;
 }
 
 /**
- * Modify config in-place to hide data: replace all bar/line backgroundColor
- * with grey, keeping axes/gridlines/legend visible. Legend swatches will show
- * grey (matching the base-layer reveal aesthetic).
+ * Modify config in-place to hide data for the base layer.
+ *
+ * Bar/pie: replace backgroundColor with grey ("ghost" convention — keeps
+ * axes/gridlines/legend visible, shapes faintly visible pre-wipe).
+ *
+ * Line: make the line + markers fully transparent instead of greying them —
+ * per owner's explicit request, the pre-wipe base layer for line charts
+ * shows only axes/gridlines/legend (a "blank track"), and the color wipe
+ * reveals the line + markers from nothing rather than color-shifting an
+ * already-visible grey line. Scoped to line datasets only — bar/pie keep the
+ * grey-ghost convention used by the rest of the animation system.
  */
 function modifyConfigForHiddenData(config: ChartConfiguration): void {
   if (!config.data || !config.data.datasets) return;
 
-  // Grey out all dataset colors
+  const isLine = config.type === 'line';
+
   config.data.datasets.forEach((ds: any) => {
+    if (isLine) {
+      ds.borderColor = 'transparent';
+      ds.backgroundColor = 'transparent';
+      ds.pointBackgroundColor = 'transparent';
+      ds.pointBorderColor = 'transparent';
+      return;
+    }
+
     // Bars
     if (Array.isArray(ds.backgroundColor)) {
       ds.backgroundColor = ds.backgroundColor.map(() => GREY_COLOR);
@@ -141,7 +178,7 @@ function modifyConfigForHiddenData(config: ChartConfiguration): void {
     }
   });
 
-  console.log('[BarChartSetup] Config modified for hidden data; all bars now grey.');
+  console.log('[BarChartSetup] Config modified for hidden data.');
 }
 
 /**

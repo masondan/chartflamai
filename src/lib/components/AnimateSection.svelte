@@ -5,16 +5,22 @@
   import { DURATION_OPTIONS_MS } from '$lib/animation/timeline';
   import type { WaffleClipConfig } from '$lib/animation/renderers/waffle';
   import type { BarClipConfig } from '$lib/animation/renderers/bar-chart-setup';
+  import type { PictogramClipConfig } from '$lib/animation/renderers/pictogram';
+  import type { LineClipConfig } from '$lib/animation/renderers/line';
+  import type { PieClipConfig } from '$lib/animation/renderers/pie';
 
   console.log('[AnimateSection] Module loaded');
 
   interface Props {
     waffleConfig?: WaffleClipConfig;
     barConfig?: BarClipConfig;
+    pictogramConfig?: PictogramClipConfig;
+    lineConfig?: LineClipConfig;
+    pieConfig?: PieClipConfig;
   }
 
-  let { waffleConfig, barConfig }: Props = $props();
-  console.log('[AnimateSection] Props destructured, waffleConfig:', waffleConfig, 'barConfig:', barConfig);
+  let { waffleConfig, barConfig, pictogramConfig, lineConfig, pieConfig }: Props = $props();
+  console.log('[AnimateSection] Props destructured, waffleConfig:', waffleConfig, 'barConfig:', barConfig, 'pictogramConfig:', pictogramConfig, 'lineConfig:', lineConfig, 'pieConfig:', pieConfig);
 
   type PreviewState = 'idle' | 'growing' | 'generating' | 'ready';
   type Duration = 1 | 2 | 3;
@@ -52,7 +58,7 @@
   // closed and reopened (which remounts this component and resets state).
   let lastConfigSnapshot: string | null = null;
   $effect(() => {
-    const snapshot = JSON.stringify(barConfig ?? waffleConfig ?? null);
+    const snapshot = JSON.stringify(barConfig ?? lineConfig ?? pieConfig ?? waffleConfig ?? pictogramConfig ?? null);
     if (lastConfigSnapshot !== null && snapshot !== lastConfigSnapshot && previewState !== 'idle') {
       previewState = 'idle';
       isPlaying = false;
@@ -93,9 +99,9 @@
   }
 
   async function generateVideo() {
-    console.log('[AnimateSection] generateVideo called. waffleConfig:', waffleConfig, 'barConfig:', barConfig, 'browser:', browser);
-    if ((!waffleConfig && !barConfig) || !browser) {
-      console.warn('[AnimateSection] Bailing: waffleConfig =', waffleConfig, ', barConfig =', barConfig, ', browser =', browser);
+    console.log('[AnimateSection] generateVideo called. waffleConfig:', waffleConfig, 'barConfig:', barConfig, 'pictogramConfig:', pictogramConfig, 'lineConfig:', lineConfig, 'pieConfig:', pieConfig, 'browser:', browser);
+    if ((!waffleConfig && !barConfig && !pictogramConfig && !lineConfig && !pieConfig) || !browser) {
+      console.warn('[AnimateSection] Bailing: all configs undefined or not in browser');
       return;
     }
 
@@ -118,6 +124,30 @@
           animMs,
           scale: 1,
           bar: barConfig
+        };
+      } else if (lineConfig) {
+        console.log('[AnimateSection] Creating line clip with animMs:', animMs);
+        clipOptions = {
+          kind: 'line',
+          animMs,
+          scale: 1,
+          line: lineConfig
+        };
+      } else if (pieConfig) {
+        console.log('[AnimateSection] Creating pie clip with animMs:', animMs);
+        clipOptions = {
+          kind: 'pie',
+          animMs,
+          scale: 1,
+          pie: pieConfig
+        };
+      } else if (pictogramConfig) {
+        console.log('[AnimateSection] Creating pictogram clip with animMs:', animMs);
+        clipOptions = {
+          kind: 'pictogram',
+          animMs,
+          scale: 1,
+          pictogram: pictogramConfig
         };
       } else {
         console.log('[AnimateSection] Creating waffle clip with animMs:', animMs, 'cells:', waffleConfig?.cells.length);
@@ -188,7 +218,16 @@
 
     try {
       const blob = await fetch(videoBlobUrl).then((r) => r.blob());
-      const filename = generateVideoFilename('chartflam-waffle', lastMimeType);
+      const baseName = barConfig
+        ? 'chartflam-bar'
+        : lineConfig
+          ? 'chartflam-line'
+          : pieConfig
+            ? 'chartflam-pie'
+            : pictogramConfig
+              ? 'chartflam-pictogram'
+              : 'chartflam-waffle';
+      const filename = generateVideoFilename(baseName, lastMimeType);
       downloadBlob(blob, filename);
     } catch (err) {
       console.error('[AnimateSection] Download failed:', err);
@@ -231,6 +270,7 @@
 
   <button
     class="anim-btn download-anim-btn"
+    class:active={!downloadDisabled}
     onclick={handleDownloadClick}
     disabled={downloadDisabled}
     aria-label="Download video"
@@ -304,6 +344,22 @@
     width: 16px;
     height: 16px;
     filter: brightness(0) saturate(100%);
+  }
+
+  /* Download button, enabled state: solid purple with white icon — makes
+     it easy to spot once a preview video is ready, distinct from the large
+     purple static-PNG Download button below so the two aren't confused. */
+  .download-anim-btn.active {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+  }
+
+  .download-anim-btn.active:hover:not(:disabled) {
+    opacity: 0.9;
+  }
+
+  .download-anim-btn.active img {
+    filter: brightness(0) invert(1);
   }
 
   .duration-buttons {
