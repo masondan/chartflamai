@@ -2,6 +2,9 @@
   import { onMount } from 'svelte';
   import { browser } from '$app/environment';
   import { chartArchive } from '$lib/stores/chartArchive.svelte';
+  import AnimateSection from './AnimateSection.svelte';
+  import { measureWaffleLegend, drawWaffleLegend, type WaffleLegendItem } from '$lib/utils/waffle-legend';
+  import type { WaffleClipConfig } from '$lib/animation/renderers/waffle';
 
   interface Props {
     archiveId?: string;
@@ -306,6 +309,40 @@
     return lines;
   }
 
+  function buildWaffleClipConfig(): WaffleClipConfig {
+    const cells = waffleData.flatMap(d =>
+      Array(d.value).fill(null).map(() => ({ color: d.color }))
+    );
+    const legendItems: WaffleLegendItem[] = waffleData.map(d => ({ label: d.label, color: d.color }));
+    return {
+      cells,
+      gridCols,
+      cellGap,
+      cellShape,
+      cellRounding,
+      bgColor,
+      chartTitle,
+      titleFont,
+      titleAlign,
+      titleBold,
+      titleItalic,
+      titleSize,
+      titleLineHeight,
+      titleColor,
+      chartCaption,
+      captionFont,
+      captionAlign,
+      captionSize,
+      captionLineHeight,
+      captionColor,
+      legendItems,
+      legendVisible,
+      legendPosition,
+      legendSize,
+      legendColor
+    };
+  }
+
   async function downloadWaffle() {
     const exportWidth = 1080;
     const padding = 40;
@@ -339,9 +376,18 @@
       captionBlockHeight = 40 + (captionLines.length * captionLineSpacing);
     }
 
+    const legendItems: WaffleLegendItem[] = waffleData.map(d => ({ label: d.label, color: d.color }));
+    const legendGap = 30;
+    const legendMetrics = legendVisible && legendItems.length > 0
+      ? measureWaffleLegend(measureCtx, legendItems, legendSize, textMaxWidth)
+      : null;
+    const legendBlockHeight = legendMetrics ? legendGap + legendMetrics.totalHeight : 0;
+
     let totalHeight = 40;
     totalHeight += titleBlockHeight;
+    if (legendMetrics && legendPosition === 'top') totalHeight += legendBlockHeight;
     totalHeight += gridHeight + 40;
+    if (legendMetrics && legendPosition === 'bottom') totalHeight += legendBlockHeight;
     totalHeight += captionBlockHeight;
 
     const exportCanvas = document.createElement('canvas');
@@ -367,6 +413,11 @@
       yOffset += titleBlockHeight;
     }
 
+    if (legendMetrics && legendPosition === 'top') {
+      drawWaffleLegend(ctx, legendMetrics, legendColor, exportWidth, yOffset);
+      yOffset += legendBlockHeight;
+    }
+
     // Draw grid
     const cellColors: string[] = [];
     waffleData.forEach(d => {
@@ -388,6 +439,11 @@
     }
 
     yOffset += gridHeight + 40;
+
+    if (legendMetrics && legendPosition === 'bottom') {
+      drawWaffleLegend(ctx, legendMetrics, legendColor, exportWidth, yOffset);
+      yOffset += legendBlockHeight;
+    }
 
     if (chartCaption) {
       ctx.fillStyle = captionColor;
@@ -913,6 +969,21 @@
               <span>Legend above</span>
             </button>
           </div>
+        </div>
+      {/if}
+    </div>
+
+    <!-- ═══ ANIMATE ═══ -->
+    <div class="control-section" class:open={openSection === 'animate'}>
+      <button class="section-header" onclick={() => openSection = openSection === 'animate' ? '' : 'animate'}>
+        Animate
+        <svg class="section-chevron" width="16" height="16" viewBox="0 0 20 20" fill="none">
+          <path d="M6 8l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      {#if openSection === 'animate'}
+        <div class="section-body">
+          <AnimateSection waffleConfig={buildWaffleClipConfig()} />
         </div>
       {/if}
     </div>

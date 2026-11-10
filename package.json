@@ -24,6 +24,7 @@
     "@google/generative-ai": "^0.24.1",
     "chart.js": "^4.4.0",
     "dotenv": "^17.3.1",
+    "mediabunny": "^1.65.2",
     "papaparse": "^5.4.1",
     "pdfjs-dist": "^5.6.205"
   }
