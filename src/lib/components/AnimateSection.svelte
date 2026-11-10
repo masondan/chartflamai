@@ -4,15 +4,17 @@
   import { smartExportClip, downloadBlob, generateVideoFilename, type ExportProgress } from '$lib/utils/chart-video-export';
   import { DURATION_OPTIONS_MS } from '$lib/animation/timeline';
   import type { WaffleClipConfig } from '$lib/animation/renderers/waffle';
+  import type { BarClipConfig } from '$lib/animation/renderers/bar-chart-setup';
 
   console.log('[AnimateSection] Module loaded');
 
   interface Props {
     waffleConfig?: WaffleClipConfig;
+    barConfig?: BarClipConfig;
   }
 
-  let { waffleConfig }: Props = $props();
-  console.log('[AnimateSection] Props destructured, waffleConfig:', waffleConfig);
+  let { waffleConfig, barConfig }: Props = $props();
+  console.log('[AnimateSection] Props destructured, waffleConfig:', waffleConfig, 'barConfig:', barConfig);
 
   type PreviewState = 'idle' | 'growing' | 'generating' | 'ready';
   type Duration = 1 | 2 | 3;
@@ -36,6 +38,32 @@
   function scrollPreviewIntoView() {
     previewEl?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }
+
+  // ─── Invalidate cached preview when chart config changes ───
+  // barConfig/waffleConfig are freshly-built objects each time the parent
+  // ChartEditor re-renders (e.g. buildBarClipConfig() is called inline in
+  // the template), so a reference comparison would false-positive on every
+  // unrelated re-render. Serializing and comparing content is reliable and
+  // cheap enough for chart-config-sized objects. Without this, once a
+  // preview has been generated (previewState === 'ready'), clicking Play
+  // again just replays the cached video — any edits made to the chart after
+  // the first Play (bar/line depth, colours, rounding, data, etc.) would
+  // silently NOT appear in the animation until the Animate section was
+  // closed and reopened (which remounts this component and resets state).
+  let lastConfigSnapshot: string | null = null;
+  $effect(() => {
+    const snapshot = JSON.stringify(barConfig ?? waffleConfig ?? null);
+    if (lastConfigSnapshot !== null && snapshot !== lastConfigSnapshot && previewState !== 'idle') {
+      previewState = 'idle';
+      isPlaying = false;
+      if (videoEl) videoEl.pause();
+      if (videoBlobUrl) {
+        URL.revokeObjectURL(videoBlobUrl);
+        videoBlobUrl = null;
+      }
+    }
+    lastConfigSnapshot = snapshot;
+  });
 
   function selectDuration(d: Duration) {
     if (d === duration) return;
@@ -65,9 +93,9 @@
   }
 
   async function generateVideo() {
-    console.log('[AnimateSection] generateVideo called. waffleConfig:', waffleConfig, 'browser:', browser);
-    if (!waffleConfig || !browser) {
-      console.warn('[AnimateSection] Bailing: waffleConfig =', waffleConfig, ', browser =', browser);
+    console.log('[AnimateSection] generateVideo called. waffleConfig:', waffleConfig, 'barConfig:', barConfig, 'browser:', browser);
+    if ((!waffleConfig && !barConfig) || !browser) {
+      console.warn('[AnimateSection] Bailing: waffleConfig =', waffleConfig, ', barConfig =', barConfig, ', browser =', browser);
       return;
     }
 
@@ -81,12 +109,24 @@
 
     try {
       const animMs = DURATION_OPTIONS_MS[duration - 1];
-      console.log('[AnimateSection] Creating clip with animMs:', animMs, 'cells:', waffleConfig.cells.length);
-      const clipOptions: CreateClipOptions = {
-        kind: 'waffle',
-        animMs,
-        waffle: waffleConfig
-      };
+      
+      let clipOptions: CreateClipOptions;
+      if (barConfig) {
+        console.log('[AnimateSection] Creating bar clip with animMs:', animMs);
+        clipOptions = {
+          kind: 'bar',
+          animMs,
+          scale: 1,
+          bar: barConfig
+        };
+      } else {
+        console.log('[AnimateSection] Creating waffle clip with animMs:', animMs, 'cells:', waffleConfig?.cells.length);
+        clipOptions = {
+          kind: 'waffle',
+          animMs,
+          waffle: waffleConfig!
+        };
+      }
 
       const clip = await createClip(clipOptions);
       console.log('[AnimateSection] Clip created:', clip.width, 'x', clip.height);

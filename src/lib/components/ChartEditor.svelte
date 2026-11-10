@@ -4,6 +4,9 @@
   import type { ChartType } from '$lib/config/design';
   import { DESIGN_TOKENS } from '$lib/config/design';
   import { chartArchive } from '$lib/stores/chartArchive.svelte';
+  import { buildChartConfig } from '$lib/utils/chart-config';
+  import AnimateSection from './AnimateSection.svelte';
+  import { captureBarClipConfig } from '$lib/animation/renderers/bar-chart-setup';
 
   interface Props {
     chartType: ChartType;
@@ -164,136 +167,44 @@
   }
 
   // ─── Chart.js config ───
-  function getChartJsType(): string {
-    if (isPie) return isDonut ? 'doughnut' : 'pie';
-    if (activeType === 'stackedBar' || activeType === 'groupedBar') return 'bar';
-    return activeType;
-  }
-
-  function buildChartConfig(): any {
-    const colors = DESIGN_TOKENS.chartColors;
-    const datasets: any[] = values.map((vals, i) => {
-      const ds: any = { label: seriesNames[i] || `Series ${i + 1}`, data: [...vals] };
-
-      if (isPie) {
-        ds.backgroundColor = vals.map((_: number, j: number) => sliceColors[j % sliceColors.length]);
-        ds.borderColor = bgColor === 'transparent' ? 'transparent' : (bgColor === 'white' ? '#FFFFFF' : bgColor);
-        ds.borderWidth = sliceGap;
-      } else if (isLine) {
-        const color = lineColors[i % lineColors.length];
-        ds.borderColor = color;
-        ds.backgroundColor = 'transparent';
-        ds.fill = false;
-        ds.tension = lineTension / 10;
-        ds.borderWidth = lineWidth;
-        ds.pointRadius = markerVisible ? markerSize : 0;
-        ds.pointHoverRadius = markerVisible ? markerSize + 2 : 0;
-        ds.pointBackgroundColor = markerColors[i % markerColors.length];
-        ds.pointBorderColor = markerColors[i % markerColors.length];
-        ds.pointStyle = markerStyle;
-      } else {
-        // Bar: apply per-bar colors or base color
-        ds.backgroundColor = vals.map((_: number, labelIdx: number) => 
-          barBarColors[labelIdx] || baseBarColor
-        );
-        ds.borderColor = vals.map((_: number, labelIdx: number) => 
-          barBarColors[labelIdx] || baseBarColor
-        );
-        ds.borderWidth = 0;
-        ds.borderRadius = barRounding;
-        ds.categoryPercentage = barSpacing / 100;
-      }
-      return ds;
+  function getChartJsConfig(): any {
+    return buildChartConfig({
+      activeType,
+      isPieVariant,
+      labels,
+      values,
+      seriesNames,
+      sliceColors,
+      sliceGap,
+      donutCutout,
+      smoothing,
+      barRounding,
+      barSpacing,
+      barAspectRatio,
+      barOrientation,
+      barMode,
+      baseBarColor,
+      barBarColors,
+      lineTension,
+      lineWidth,
+      lineAspectRatio,
+      markerStyle,
+      markerSize,
+      markerVisible,
+      lineColors,
+      markerColors,
+      chartTitle,
+      chartCaption,
+      bgColor,
+      legendVisible,
+      legendPosition,
+      legendSize,
+      legendColor,
+      axisVisible,
+      axisSize,
+      axisBold,
+      axisColor
     });
-
-    const options: any = {
-      responsive: true,
-      maintainAspectRatio: false,
-      animation: { duration: 300 },
-      layout: { padding: { top: 8, bottom: 4, left: 4, right: 4 } },
-      plugins: {
-        legend: {
-          display: legendVisible && (isPie || isMultiSeries),
-          position: legendPosition,
-          labels: {
-            font: { family: "'Inter', sans-serif", size: legendSize, weight: '500' },
-            padding: 15,
-            usePointStyle: true,
-            pointStyle: isLine ? 'circle' : 'rect',
-            color: legendColor,
-            ...(isLine && {
-              generateLabels(chart: any) {
-                const { data } = chart;
-                return data.datasets.map((dataset: any, i: number) => ({
-                  text: dataset.label || '',
-                  fillStyle: dataset.borderColor || 'rgba(0,0,0,0.1)',
-                  strokeStyle: dataset.borderColor || 'rgba(0,0,0,0.1)',
-                  lineWidth: 0,
-                  hidden: !chart.isDatasetVisible(i),
-                  index: i,
-                  pointStyle: 'circle'
-                }));
-              }
-            })
-          }
-        },
-        tooltip: {
-          backgroundColor: '#1f1f1f',
-          titleFont: { family: "'Inter', sans-serif", size: 12, weight: '600' },
-          bodyFont: { family: "'Inter', sans-serif", size: 11 },
-          padding: 10,
-          cornerRadius: 8
-        }
-      }
-    };
-
-    if (isPie) {
-      options.elements = { arc: { borderRadius: smoothing } };
-      if (isDonut) {
-        options.cutout = `${donutCutout}%`;
-      }
-    }
-
-    if (isBar) {
-      options.indexAxis = barOrientation === 'vertical' ? 'x' : 'y';
-      options.aspectRatio = barAspectRatio / 100;
-      const axisOpts = {
-        display: axisVisible,
-        grid: { display: false },
-        ticks: {
-          color: axisColor,
-          font: { family: "'Inter', sans-serif", size: axisSize, weight: axisBold ? 'bold' as const : 'normal' as const }
-        },
-        border: { display: false }
-      };
-      const isStacked = isMultiSeries && barMode === 'stacked';
-      options.scales = {
-        x: { ...axisOpts, stacked: isStacked },
-        y: { ...axisOpts, stacked: isStacked, grid: { display: true, color: 'rgba(0,0,0,0.05)' } }
-      };
-    }
-
-    if (isLine) {
-      options.aspectRatio = lineAspectRatio / 100;
-      const axisOpts = {
-        display: axisVisible,
-        ticks: {
-          color: axisColor,
-          font: { family: "'Inter', sans-serif", size: axisSize, weight: axisBold ? 'bold' as const : 'normal' as const }
-        },
-        border: { display: false }
-      };
-      options.scales = {
-        x: { ...axisOpts, grid: { display: false } },
-        y: { ...axisOpts, grid: { display: true, color: '#e0e0e0' }, beginAtZero: true }
-      };
-    }
-
-    return {
-      type: getChartJsType(),
-      data: { labels: [...labels], datasets },
-      options
-    };
   }
 
   async function renderChart() {
@@ -311,7 +222,7 @@
     }
 
     // Deep-clone to strip Svelte 5 $state proxies
-    const config = JSON.parse(JSON.stringify(buildChartConfig()));
+    const config = JSON.parse(JSON.stringify(getChartJsConfig()));
     chartInstance = new ChartJs(canvas, config);
   }
 
@@ -354,6 +265,57 @@
     activeType = type;
     if (type !== 'pie') isPieVariant = 'pie';
     updateChart();
+  }
+
+  // ─── Helpers for building bar animation config ───
+  function buildBarClipConfig() {
+    return captureBarClipConfig({
+      activeType,
+      isPieVariant,
+      labels,
+      values,
+      seriesNames,
+      sliceColors,
+      sliceGap,
+      donutCutout,
+      smoothing,
+      barRounding,
+      barSpacing,
+      barAspectRatio,
+      barOrientation,
+      barMode,
+      baseBarColor,
+      barBarColors,
+      lineTension,
+      lineWidth,
+      lineAspectRatio,
+      markerStyle,
+      markerSize,
+      markerVisible,
+      lineColors,
+      markerColors,
+      chartTitle,
+      chartCaption,
+      bgColor,
+      legendVisible,
+      legendPosition,
+      legendSize,
+      legendColor,
+      axisVisible,
+      axisSize,
+      axisBold,
+      axisColor,
+      titleFont,
+      titleSize,
+      titleBold,
+      titleItalic,
+      titleAlign,
+      titleColor,
+      captionFont,
+      captionSize,
+      captionAlign,
+      captionColor
+    });
   }
 
   // ─── Style slider helpers ───
@@ -1295,6 +1257,23 @@
                   oninput={(e) => { axisColor = (e.target as HTMLInputElement).value; updateChart(); }}
                 />
               </div>
+            </div>
+          {/if}
+        </div>
+      {/if}
+
+      <!-- ═══ ANIMATE ═══ -->
+      {#if isBar}
+        <div class="control-section" class:open={openSection === 'animate'}>
+          <button class="section-header" onclick={() => openSection = openSection === 'animate' ? '' : 'animate'}>
+            Animate
+            <svg class="section-chevron" width="16" height="16" viewBox="0 0 20 20" fill="none">
+              <path d="M6 8l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          {#if openSection === 'animate'}
+            <div class="section-body">
+              <AnimateSection barConfig={buildBarClipConfig()} />
             </div>
           {/if}
         </div>
